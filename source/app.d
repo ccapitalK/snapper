@@ -2,6 +2,8 @@ import std.algorithm;
 import std.exception;
 import std.stdio;
 
+import board;
+
 class ChessEngine {
     File outFile;
     bool pipeClosed = false;
@@ -41,6 +43,7 @@ class ChessEngine {
 
     void run() {
         performHandshake();
+        while (true) readCommand();
     }
 
     void performHandshake() {
