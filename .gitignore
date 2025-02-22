@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/chess_engine
+chess_engine.so
+chess_engine.dylib
+chess_engine.dll
+chess_engine.a
+chess_engine.lib
+chess_engine-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst

@@ -1,0 +1,9 @@
+{
+    "authors": [
+        "sahan"
+    ],
+    "copyright": "Copyright © 2025, sahan",
+    "description": "Chess Engine",
+    "license": "MIT",
+    "name": "chess_engine"
+}
