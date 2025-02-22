@@ -14,3 +14,4 @@ chess_engine-test-*
 *.o
 *.obj
 *.lst
+run.log
