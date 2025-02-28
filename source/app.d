@@ -19,8 +19,10 @@ class ChessEngine {
         if (line == "") {
             pipeClosed = true;
             outFile.write("Closed pipe");
+            outFile.flush();
         } else {
             outFile.write("Read: ", line);
+            outFile.flush();
         }
         lastCommand = line[0 .. $ - 1];
         return lastCommand;
@@ -37,6 +39,7 @@ class ChessEngine {
     void sendCommand(string line) {
         enforce(line.length > 0 && line[$ - 1] == '\n');
         outFile.write("Wrote: ", line);
+        outFile.flush();
         write(line);
         stdout.flush();
     }
