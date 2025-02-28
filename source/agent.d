@@ -21,15 +21,8 @@ class ChessAgent {
     }
 
     string bestMove(string opts) {
-        switch (currentBoard.fullMove) {
-        case 0:
-            return "e7e5";
-        case 1:
-            return "d7d5";
-        case 2:
-            return "c7c5";
-        default:
-            return "b7b5";
-        }
+        auto allMoves = currentBoard.validMoves();
+        enforce(allMoves.length > 0);
+        return allMoves[uniform(0, allMoves.length, rnd)].move.getRepr;
     }
 }
