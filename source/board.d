@@ -107,7 +107,7 @@ struct Castling {
     bool blackQueen;
 }
 
-struct ParsedFEN {
+struct ParsedFen {
     Board board;
     Player move;
     Castling castling;
@@ -116,8 +116,8 @@ struct ParsedFEN {
     uint fullMove;
 }
 
-ParsedFEN parseFEN(string input) {
-    ParsedFEN fen;
+ParsedFen parseFen(string input) {
+    ParsedFen fen;
     auto parts = input.strip.splitter(' ').staticArray!6;
     foreach (rank, line; parts[0].splitter('/').enumerate) {
         auto file = 0;
@@ -177,7 +177,7 @@ ParsedFEN parseFEN(string input) {
 }
 
 unittest {
-    auto parsed = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2 ".parseFEN;
+    auto parsed = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2 ".parseFen;
     assert(*parsed.board.getSquare(5, 5) == Square());
     assert(*parsed.board.getSquare(0, 0) == Square(Player.white, Piece.rook));
     assert(parsed.move == Player.black);
