@@ -74,10 +74,11 @@ struct Board {
     const(Square)* getSquare(size_t file, size_t rank) const => &pieces[file + 8 * rank];
 }
 
-void print(const ref Board board) {
+string getAsciiArtRepr(const ref Board board) {
+    auto builder = appender(cast(string) []);
     foreach (y; 0 .. 8) {
         auto rank = 7 - y;
-        write(rank + 1, "  ");
+        builder.put(format("%d  ", rank + 1));
         foreach (x; 0 .. 8) {
             auto file = 7 - x;
             auto square = *board.getSquare(file, rank);
@@ -93,11 +94,16 @@ void print(const ref Board board) {
                     break pSwitch;
                 }
             }
-            write(square.getPlayer == Player.white ? std.ascii.toUpper(c) : c);
+            builder.put(square.getPlayer == Player.white ? std.ascii.toUpper(c) : c);
         }
-        writeln();
+        builder.put('\n');
     }
-    writeln("\n   ABCDEFGH");
+    builder.put("\n   ABCDEFGH");
+    return builder.data;
+}
+
+void print(const ref Board board) {
+    write(board.getAsciiArtRepr);
 }
 
 struct Castling {

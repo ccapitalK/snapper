@@ -2,15 +2,19 @@ import std.algorithm;
 import std.exception;
 import std.stdio;
 
+import agent;
 import board;
 
 class ChessEngine {
-    File outFile;
+    ChessAgent agent;
+    // XXX Use std.logging
+    File logFile;
     bool pipeClosed = false;
     string lastCommand;
 
     this() {
-         outFile = File("run.log", "w");
+         logFile = File("run.log", "w");
+         this.agent = new ChessAgent(&logFile);
     }
 
     string readCommand() {
@@ -18,13 +22,13 @@ class ChessEngine {
         line = readln();
         if (line == "") {
             pipeClosed = true;
-            outFile.write("Closed pipe");
-            outFile.flush();
+            logFile.write("Closed pipe");
+            logFile.flush();
         } else {
-            outFile.write("Read: ", line);
-            outFile.flush();
+            logFile.write("Read: ", line);
+            logFile.flush();
+            lastCommand = line[0 .. $ - 1];
         }
-        lastCommand = line[0 .. $ - 1];
         return lastCommand;
     }
 
@@ -38,15 +42,27 @@ class ChessEngine {
 
     void sendCommand(string line) {
         enforce(line.length > 0 && line[$ - 1] == '\n');
-        outFile.write("Wrote: ", line);
-        outFile.flush();
+        logFile.write("Wrote: ", line);
+        logFile.flush();
         write(line);
         stdout.flush();
     }
 
     void run() {
         performHandshake();
-        while (true) readCommand();
+        while (true) {
+            auto command = readCommand();
+            if (command.startsWith("position")) {
+                auto fen = command.findSplitAfter(" ")[1];
+                agent.setPosition(fen);
+                continue;
+            }
+            if (command.startsWith("go")) {
+                auto opts = command.findSplitAfter(" ")[1];
+                auto move = agent.bestMove(opts);
+                sendCommand("bestmove " ~ move ~ "\n");
+            }
+        }
     }
 
     void performHandshake() {

@@ -2,8 +2,8 @@
 
 ## Getting started
 
+- [x] Read a move, pick a random (simple) move, write a move
 - [ ] Basic board repr
-- [ ] Read a move, pick a random (simple) move, write a move
 - [ ] Enumerate legal moves
 - [ ] Pick best move that is legal from 2-deep search
 
