@@ -3,6 +3,7 @@ import std.array;
 import std.ascii;
 import std.conv;
 import std.exception;
+import std.logger;
 import std.range;
 import std.stdio;
 import std.string;

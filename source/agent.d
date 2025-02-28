@@ -1,21 +1,23 @@
 import std.algorithm;
+import std.exception;
+import std.logger;
+import std.random;
 import std.stdio;
 
 import board;
 
 class ChessAgent {
-    ParsedFen currentBoard;
-    File *logFile;
+    Mt19937 rnd;
+    GameState currentBoard;
 
-    this(File *logFile) {
-        this.logFile = logFile;
+    this() {
+        rnd.seed(1337);
     }
 
     void setPosition(string fen) {
         currentBoard = fen.findSplitAfter(" ")[1].parseFen;
-        logFile.writeln("Parsed position:");
-        logFile.writeln(currentBoard.board.getAsciiArtRepr);
-        logFile.flush();
+        info("Parsed position:");
+        info(currentBoard.board.getAsciiArtRepr);
     }
 
     string bestMove(string opts) {

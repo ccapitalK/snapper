@@ -1,5 +1,6 @@
 import std.algorithm;
 import std.exception;
+import std.logger;
 import std.stdio;
 
 import agent;
@@ -8,13 +9,11 @@ import board;
 class ChessEngine {
     ChessAgent agent;
     // XXX Use std.logging
-    File logFile;
     bool pipeClosed = false;
     string lastCommand;
 
     this() {
-         logFile = File("run.log", "w");
-         this.agent = new ChessAgent(&logFile);
+         this.agent = new ChessAgent();
     }
 
     string readCommand() {
@@ -22,12 +21,10 @@ class ChessEngine {
         line = readln();
         if (line == "") {
             pipeClosed = true;
-            logFile.write("Closed pipe");
-            logFile.flush();
+            info("Closed pipe");
         } else {
-            logFile.write("Read: ", line);
-            logFile.flush();
             lastCommand = line[0 .. $ - 1];
+            info("Read: ", lastCommand);
         }
         return lastCommand;
     }
@@ -42,15 +39,14 @@ class ChessEngine {
 
     void sendCommand(string line) {
         enforce(line.length > 0 && line[$ - 1] == '\n');
-        logFile.write("Wrote: ", line);
-        logFile.flush();
+        info("Wrote: ", line[0 .. $ - 1]);
         write(line);
         stdout.flush();
     }
 
     void run() {
         performHandshake();
-        while (true) {
+        while (!pipeClosed) {
             auto command = readCommand();
             if (command.startsWith("position")) {
                 auto fen = command.findSplitAfter(" ")[1];
@@ -63,6 +59,7 @@ class ChessEngine {
                 sendCommand("bestmove " ~ move ~ "\n");
             }
         }
+        info("Pipe closed, exiting");
     }
 
     void performHandshake() {
@@ -76,6 +73,7 @@ class ChessEngine {
 }
 
 void main() {
+    sharedLog = cast(shared) new FileLogger("run.log");
     auto engine = new ChessEngine();
     engine.run();
 }
