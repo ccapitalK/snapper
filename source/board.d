@@ -4,6 +4,7 @@ import std.ascii;
 import std.conv;
 import std.exception;
 import std.range;
+import std.stdio;
 import std.string;
 import std.typecons;
 
@@ -14,7 +15,6 @@ struct MCoord {
     ubyte y;
     static const MCoord invalid = MCoord(255, 255);
 }
-
 
 enum Player : ubyte {
     white = 0,
@@ -49,14 +49,14 @@ struct Square {
         setPiece(piece);
     }
 
-    Piece getPiece() => cast(Piece) (v & 7);
+    Piece getPiece() const => cast(Piece)(v & 7);
     void setPiece(Piece p) {
         v = (v & 0xF8) | p;
     }
 
-    Player getPlayer() => cast(Player) ((v >> 3) & 1);
+    Player getPlayer() const => cast(Player)((v >> 3) & 1);
     void setPlayer(Player p) {
-        v = cast(ubyte) ((v & ~0x08) | (p << 3));
+        v = cast(ubyte)((v & ~0x08) | (p << 3));
     }
 
     bool isEmpty() const => v == 0;
@@ -70,8 +70,34 @@ struct Board {
     // TODO: Pack into half the space
     Square[64] pieces;
 
-    Square *getSquare(size_t file, size_t rank) => &pieces[file + 8 * rank];
-    const(Square) *getSquare(size_t file, size_t rank) const => &pieces[file + 8 * rank];
+    Square* getSquare(size_t file, size_t rank) => &pieces[file + 8 * rank];
+    const(Square)* getSquare(size_t file, size_t rank) const => &pieces[file + 8 * rank];
+}
+
+void print(const ref Board board) {
+    foreach (y; 0 .. 8) {
+        auto rank = 7 - y;
+        write(rank + 1, "  ");
+        foreach (x; 0 .. 8) {
+            auto file = 7 - x;
+            auto square = *board.getSquare(file, rank);
+            char c;
+        pSwitch:
+            final switch (square.getPiece()) {
+            case Piece.empty:
+                c = ' ';
+                break;
+                static foreach (v; pieceByFenName) {
+            case v[1]:
+                    c = v[0];
+                    break pSwitch;
+                }
+            }
+            write(square.getPlayer == Player.white ? std.ascii.toUpper(c) : c);
+        }
+        writeln();
+    }
+    writeln("\n   ABCDEFGH");
 }
 
 struct Castling {
@@ -103,12 +129,13 @@ ParsedFEN parseFEN(string input) {
             enforce(c.isAlpha);
             Player player = c.isLower ? Player.black : Player.white;
             Piece piece;
-            sw: switch (std.ascii.toLower(c)) {
-            static foreach(v; pieceByFenName) {
-                case v[0]:
+        sw:
+            switch (std.ascii.toLower(c)) {
+                static foreach (v; pieceByFenName) {
+            case v[0]:
                     piece = v[1];
                     break sw;
-            }
+                }
             default:
                 break;
             }
@@ -131,8 +158,8 @@ ParsedFEN parseFEN(string input) {
             break;
         case 'k':
             fen.castling.blackKing = 1;
-            break;         
-        case 'q':          
+            break;
+        case 'q':
             fen.castling.blackQueen = 1;
             break;
         default:
@@ -151,10 +178,10 @@ ParsedFEN parseFEN(string input) {
 
 unittest {
     auto parsed = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2 ".parseFEN;
-    assert (*parsed.board.getSquare(5,5) == Square());
-    assert (*parsed.board.getSquare(0,0) == Square(Player.white, Piece.rook));
-    assert (parsed.move == Player.black);
-    assert (parsed.castling == Castling(true, true, true, true));
-    assert (parsed.halfMove == 1);
-    assert (parsed.fullMove == 2);
+    assert(*parsed.board.getSquare(5, 5) == Square());
+    assert(*parsed.board.getSquare(0, 0) == Square(Player.white, Piece.rook));
+    assert(parsed.move == Player.black);
+    assert(parsed.castling == Castling(true, true, true, true));
+    assert(parsed.halfMove == 1);
+    assert(parsed.fullMove == 2);
 }
