@@ -7,11 +7,12 @@ import std.logger;
 import std.range;
 import std.stdio;
 import std.string;
+import std.traits;
 import std.typecons;
 
 static const int[2] SIGNS = [-1, 1];
+auto atMostOne() => iota(-1, 2);
 
-// TODO: pack into a byte
 struct MCoord {
     // File, from 0
     byte x;
@@ -136,10 +137,8 @@ void print(const ref Board board) {
 bool isEmpty(const ref Board board, MCoord coord) => board.getSquare(coord).isEmpty;
 
 struct Castling {
-    bool whiteKing;
-    bool whiteQueen;
-    bool blackKing;
-    bool blackQueen;
+    bool[EnumMembers!Player.length] king;
+    bool[EnumMembers!Player.length] queen;
 }
 
 struct GameState {
@@ -147,15 +146,15 @@ struct GameState {
     Player turn;
     Castling castling;
     MCoord enPassant;
-    uint halfMove;
-    uint fullMove;
+    ushort halfMove;
+    ushort fullMove;
 }
 
 float leafEval(GameState state) {
     return 0;
 }
 
-bool isCheck(const ref GameState state, Player playerToCheck) {
+bool isInCheck(const ref GameState state, Player playerToCheck) {
     return false;
 }
 
@@ -164,31 +163,45 @@ struct MoveDest {
     Move move;
 }
 
+MoveDest performMove(const ref GameState state, MCoord source, MCoord destSquare) {
+    // TODO: Mutate the board as well, needed for tree search
+    return MoveDest(state, Move(source, destSquare));
+}
+
+pragma(inline, true)
+bool canTakeOrMove(const ref GameState state, MCoord source, MCoord dest) {
+    if (!dest.isInBounds) {
+        return false;
+    }
+    auto destSquare = state.board.getSquare(dest);
+    return !destSquare.isEmpty && destSquare.getPlayer != state.turn;
+}
+
 pragma(inline, true)
 void addValidMovesForPawn(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
     // TODO: Promotion? How does UCI even handle that
     static const int[2] DOUBLE_RANK = [1, 6];
     static const int[2] FORWARD_DIR = [1, -1];
-    auto square = state.board.getSquare(source);
-    auto currentTurn = square.getPlayer;
+    auto currentTurn = state.turn;
     // TODO: Double move
     auto forward = MCoord(source.x, source.y + FORWARD_DIR[currentTurn]);
+    // Pawns on the back rank are illegal
     enforce(forward.isInBounds);
-    if (state.board.isEmpty(forward)) {
-        auto move = Move(source, forward);
-        // XXX We should be advancing the game state as well...
-        builder.put(MoveDest(state, move));
+    bool canMoveForward = state.board.isEmpty(forward);
+    if (canMoveForward) {
+        builder.put(state.performMove(source, forward));
+    }
+    if (canMoveForward && source.y == DOUBLE_RANK[currentTurn]) {
+        auto doubleForward = MCoord(source.x, source.y + 2 * FORWARD_DIR[currentTurn]);
+        if (state.board.isEmpty(doubleForward)) {
+            builder.put(state.performMove(source, doubleForward));
+        }
     }
     // TODO: En-passant
     foreach (sign; SIGNS) {
         auto dest = MCoord(source.x + sign, source.y + FORWARD_DIR[currentTurn]);
-        if (!dest.isInBounds) {
-            continue;
-        }
-        auto destSquare = state.board.getSquare(dest);
-        if (!destSquare.isEmpty && destSquare.getPlayer != currentTurn) {
-            auto move = Move(source, dest);
-            builder.put(MoveDest(state, move));
+        if (state.canTakeOrMove(source, dest)) {
+            builder.put(state.performMove(source, dest));
         }
     }
 }
@@ -209,13 +222,21 @@ void addValidMovesForKnight(const ref GameState state, Appender!(MoveDest[])* bu
 }
 
 pragma(inline, true)
-void addValidMovesForQueen(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
-    auto square = state.board.getSquare(source);
-}
-
-pragma(inline, true)
 void addValidMovesForKing(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
+    // TODO: Castle
     auto square = state.board.getSquare(source);
+    auto currentTurn = state.turn;
+    foreach (dx; atMostOne) {
+        foreach (dy; atMostOne) {
+            if (dx == 0 && dy == 0) {
+                continue;
+            }
+            auto destSquare = MCoord(source.x + dx, source.y + dy);
+            if (state.canTakeOrMove(source, destSquare)) {
+                builder.put(state.performMove(source, destSquare));
+            }
+        }
+    }
 }
 
 MoveDest[] validMoves(const ref GameState parent) {
@@ -293,20 +314,20 @@ GameState parseFen(string input) {
 
     fen.turn = parts[1][0] == 'b' ? Player.black : Player.white;
     string castling = parts[2];
-    fen.castling = Castling(false, false, false, false);
+    fen.castling = Castling([false, false], [false, false]);
     foreach (c; castling) {
         switch (c) {
         case 'K':
-            fen.castling.whiteKing = 1;
+            fen.castling.king[Player.white] = 1;
             break;
         case 'Q':
-            fen.castling.whiteQueen = 1;
+            fen.castling.queen[Player.white] = 1;
             break;
         case 'k':
-            fen.castling.blackKing = 1;
+            fen.castling.king[Player.black] = 1;
             break;
         case 'q':
-            fen.castling.blackQueen = 1;
+            fen.castling.queen[Player.black] = 1;
             break;
         default:
             break;
@@ -317,8 +338,8 @@ GameState parseFen(string input) {
     } else {
         fen.enPassant = MCoord(cast(ubyte)(parts[3][1] - '1'), cast(ubyte)(parts[3][0] - 'a'));
     }
-    fen.halfMove = parts[4].to!int;
-    fen.fullMove = parts[5].to!int;
+    fen.halfMove = parts[4].to!ushort;
+    fen.fullMove = parts[5].to!ushort;
     return fen;
 }
 
