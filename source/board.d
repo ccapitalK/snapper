@@ -89,6 +89,22 @@ struct Square {
         v = cast(ubyte)((v & ~0x08) | (p << 3));
     }
 
+    char getRepr() const {
+        char c;
+        auto piece = getPiece;
+    pieceSwitch:
+        final switch (piece) {
+        case Piece.empty:
+            return ' ';
+            static foreach (v; pieceByFenName) {
+        case v[1]:
+                c = v[0];
+                break pieceSwitch;
+            }
+        }
+        return getPlayer == Player.white ? std.ascii.toUpper(c) : c;
+    }
+
     bool isEmpty() const => v == 0;
     static const Square empty;
 }
@@ -141,6 +157,9 @@ bool isEmpty(const ref Board board, MCoord coord) => board.getSquare(coord).isEm
 struct Castling {
     bool[EnumMembers!Player.length] king;
     bool[EnumMembers!Player.length] queen;
+
+    static const Castling none = Castling([false, false], [false, false]);
+    static const Castling all = Castling([true, true], [true, true]);
 }
 
 struct GameState {
@@ -191,7 +210,7 @@ GameState parseFen(string input) {
 
     fen.turn = parts[1][0] == 'b' ? Player.black : Player.white;
     string castling = parts[2];
-    fen.castling = Castling([false, false], [false, false]);
+    fen.castling = Castling.none;
     foreach (c; castling) {
         switch (c) {
         case 'K':
@@ -220,12 +239,74 @@ GameState parseFen(string input) {
     return fen;
 }
 
+string toFen(const ref GameState state) {
+    auto builder = appender("");
+    foreach (rank; iota(8).retro) {
+        size_t numEmpty = 0;
+        foreach (file; iota(8)) {
+            auto square = state.board.getSquare(file, rank);
+            if (square.isEmpty) {
+                ++numEmpty;
+                continue;
+            }
+            if (numEmpty > 0) {
+                builder.put(numEmpty.to!string);
+                numEmpty = 0;
+            }
+            builder.put(square.getRepr);
+        }
+        if (numEmpty > 0) {
+            builder.put(numEmpty.to!string);
+        }
+        if (rank > 0) {
+            builder.put('/');
+        }
+    }
+    // Turn
+    builder.put(state.turn == Player.black ? " b" : " w");
+    // Castling
+    builder.put(" ");
+    if (state.castling == Castling.none) {
+        builder.put("-");
+    } else {
+        foreach (c; "KQkq") {
+            Player player = std.ascii.isLower(c) ? Player.black : Player.white;
+            bool canCastle = std.ascii.toLower(c) == 'k'
+                ? state.castling.king[player] : state.castling.queen[player];
+            if (canCastle) {
+                builder.put(c);
+            }
+        }
+    }
+    // En passant
+    builder.put(" ");
+    builder.put(state.enPassant == MCoord.invalid ? "-" : state.enPassant.getRepr);
+    // Half and FullMove
+    builder.put(" %d %d".format(state.halfMove, state.fullMove));
+    return builder.data();
+}
+
 unittest {
-    auto parsed = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2 ".parseFen;
+    const boards = [
+        "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+        "3k4/8/8/8/2B5/8/8/3K4 w - - 0 1",
+        "3k4/8/8/8/2B5/8/8/3K4 w KQk - 0 1",
+        "3k4/8/8/8/2B5/8/8/3K4 b KQk - 1 1",
+        "3k4/8/8/8/2B5/8/8/3K4 w KQk - 2 2",
+        "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq - 0 1",
+    ];
+    foreach (board; boards) {
+        auto parsed = board.parseFen;
+        assert(parsed.toFen == board);
+    }
+}
+
+unittest {
+    auto parsed = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2".parseFen;
     assert(*parsed.board.getSquare(5, 5) == Square());
     assert(*parsed.board.getSquare(0, 0) == Square(Player.white, Piece.rook));
     assert(parsed.turn == Player.black);
-    assert(parsed.castling == Castling([true, true], [true, true]));
+    assert(parsed.castling == Castling.all);
     assert(parsed.halfMove == 1);
     assert(parsed.fullMove == 2);
     assert(MCoord(3, 4).getRepr == "d5");
@@ -238,8 +319,33 @@ struct MoveDest {
 }
 
 MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
+    GameState next = state;
+    auto sourceSquare = next.board.getSquare(source);
+    auto destSquare = next.board.getSquare(dest);
+    assert(!sourceSquare.isEmpty && sourceSquare.getPlayer == state.turn);
+    assert(destSquare.isEmpty || destSquare.getPlayer != state.turn);
+    bool isPawn = sourceSquare.getPiece == Piece.pawn;
+    bool isCapture = !destSquare.isEmpty;
+    *destSquare = *sourceSquare;
+    *sourceSquare = Square.empty;
+    // TODO: Castling
+    // TODO: EnPassant
+    next.halfMove = (isPawn || isCapture) ? 0 : cast(ushort)(state.halfMove + 1);
+    if (state.turn == Player.black) {
+        ++next.fullMove;
+    }
+    next.turn = cast(Player) !state.turn;
     // TODO: Mutate the board as well, needed for tree search
-    return MoveDest(state, Move(source, dest));
+    return MoveDest(next, Move(source, dest));
+}
+
+unittest {
+    auto state = "3k4/8/8/8/8/8/4B3/3K4 w - - 0 1".parseFen;
+    auto result = state.performMove(MCoord(4, 1), MCoord(2, 3));
+    assert(result.board.toFen == "3k4/8/8/8/2B5/8/8/3K4 b - - 1 1");
+    state = result.board;
+    result = state.performMove(MCoord(3, 7), MCoord(4, 6));
+    assert(result.board.toFen == "8/4k3/8/8/2B5/8/8/3K4 w - - 2 2");
 }
 
 pragma(inline, true)
