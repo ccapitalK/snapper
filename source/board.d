@@ -136,10 +136,6 @@ string getAsciiArtRepr(const ref Board board) {
     return builder.data;
 }
 
-void print(const ref Board board) {
-    write(board.getAsciiArtRepr);
-}
-
 bool isEmpty(const ref Board board, MCoord coord) => board.getSquare(coord).isEmpty;
 
 struct Castling {
@@ -248,7 +244,6 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
 
 pragma(inline, true)
 bool canTakeOrMove(const ref GameState state, MCoord source, MCoord dest) {
-    writefln("Check %s %s", source, dest);
     if (!dest.isInBounds) {
         return false;
     }
@@ -258,7 +253,6 @@ bool canTakeOrMove(const ref GameState state, MCoord source, MCoord dest) {
 
 pragma(inline, true)
 bool canTake(const ref GameState state, MCoord source, MCoord dest) {
-    writefln("Check %s %s", source, dest);
     if (!dest.isInBounds) {
         return false;
     }
@@ -361,7 +355,6 @@ void addValidMovesForKing(const ref GameState state, Appender!(MoveDest[])* buil
             if (dx == 0 && dy == 0) {
                 continue;
             }
-            writefln("Adding king move %d %d", dx, dy);
             auto destSquare = MCoord(source.x + dx, source.y + dy);
             if (state.canTakeOrMove(source, destSquare)) {
                 builder.put(state.performMove(source, destSquare));
