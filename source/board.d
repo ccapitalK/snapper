@@ -2,6 +2,7 @@ import std.algorithm;
 import std.array;
 import std.ascii;
 import std.conv;
+import std.math;
 import std.exception;
 import std.logger;
 import std.range;
@@ -329,7 +330,10 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     *destSquare = *sourceSquare;
     *sourceSquare = Square.empty;
     // TODO: Castling
-    // TODO: EnPassant
+    next.enPassant = MCoord.invalid;
+    if (isPawn && abs(dest.y - source.y) > 1) {
+        next.enPassant = MCoord(dest.x, (dest.y + source.y) / 2);
+    }
     next.halfMove = (isPawn || isCapture) ? 0 : cast(ushort)(state.halfMove + 1);
     if (state.turn == Player.black) {
         ++next.fullMove;
@@ -340,12 +344,20 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
 }
 
 unittest {
+    // Two simple moves
     auto state = "3k4/8/8/8/8/8/4B3/3K4 w - - 0 1".parseFen;
     auto result = state.performMove(MCoord(4, 1), MCoord(2, 3));
     assert(result.board.toFen == "3k4/8/8/8/2B5/8/8/3K4 b - - 1 1");
     state = result.board;
     result = state.performMove(MCoord(3, 7), MCoord(4, 6));
     assert(result.board.toFen == "8/4k3/8/8/2B5/8/8/3K4 w - - 2 2");
+    // Pawn double move (test enPassant + halfMove)
+    state = "3k4/8/8/8/8/8/3P4/3K4 w - - 0 1".parseFen;
+    result = state.performMove(MCoord(3, 1), MCoord(3, 3));
+    assert(result.board.toFen == "3k4/8/8/8/3P4/8/8/3K4 b - d3 0 1");
+    state = result.board;
+    result = state.performMove(MCoord(3, 7), MCoord(3, 6));
+    assert(result.board.toFen == "8/3k4/8/8/3P4/8/8/3K4 w - - 1 2");
 }
 
 pragma(inline, true)
