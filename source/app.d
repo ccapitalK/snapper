@@ -74,6 +74,12 @@ class ChessEngine {
 
 void main() {
     sharedLog = cast(shared) new FileLogger("run.log");
-    auto engine = new ChessEngine();
-    engine.run();
+    try {
+        auto engine = new ChessEngine();
+        engine.run();
+    } catch (Throwable e) {
+        // We catch throwable here since we always want to try to fatal log
+        fatal(e);
+        throw e;
+    }
 }
