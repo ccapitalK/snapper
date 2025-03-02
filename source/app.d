@@ -73,7 +73,7 @@ class ChessEngine {
 }
 
 void main() {
-    sharedLog = cast(shared) new FileLogger("run.log");
+    sharedLog = cast(shared) new FileLogger("run.log", LogLevel.info);
     // TODO: Increase log level to trace with a cmdline flag
     try {
         auto engine = new ChessEngine();
