@@ -319,29 +319,21 @@ struct MoveDest {
 
 float leafEval(GameState state) {
     auto sum = 0.0;
+    // TODO: One true source for this
+    static const int[] VALUES = [0, 1, 5, 3, 3, 9, 4];
     foreach (rank; 0 .. 8) {
         foreach (file; 0 .. 8) {
-            auto centerCoeff = abs(((rank / 3.5) - 1) * ((file / 3.5) - 1));
-            auto square = state.board.getSquare(MCoord(file, rank));
+            const auto square = state.board.getSquare(file, rank);
             auto piece = square.getPiece();
             if (piece == Piece.empty) {
                 continue;
             }
+            auto centerCoeff = abs(((rank / 3.5) - 1) * ((file / 3.5) - 1));
             if (piece != Piece.king) {
                 centerCoeff = 1 - centerCoeff;
             }
             auto sign = square.getPlayer == Player.black ? -1 : 1;
-            int value;
-        pSwitch:
-            switch (piece) {
-                static foreach (v; pieceByFenName) {
-            case v[1]:
-                    value = v[2];
-                    break pSwitch;
-                }
-            default:
-                assert(0);
-            }
+            int value = VALUES[piece];
             sum += sign * value * (1 + .05 * centerCoeff);
         }
     }
