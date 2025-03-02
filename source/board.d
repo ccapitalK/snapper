@@ -368,7 +368,6 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
         ++next.fullMove;
     }
     next.turn = cast(Player) !state.turn;
-    // TODO: Mutate the board as well, needed for tree search
     return MoveDest(next, Move(source, dest), next.leafEval());
 }
 
