@@ -321,13 +321,13 @@ float leafEval(GameState state) {
     auto sum = 0.0;
     foreach (rank; 0 .. 8) {
         foreach (file; 0 .. 8) {
-            auto centerCoeff = 1 - abs(((rank / 3.5) - 1) * ((file / 3.5) - 1));
+            auto centerCoeff = abs(((rank / 3.5) - 1) * ((file / 3.5) - 1));
             auto square = state.board.getSquare(MCoord(file, rank));
             auto piece = square.getPiece();
             if (piece == Piece.empty) {
                 continue;
             }
-            if (piece == Piece.king) {
+            if (piece != Piece.king) {
                 centerCoeff = 1 - centerCoeff;
             }
             auto sign = square.getPlayer == Player.black ? -1 : 1;
@@ -342,7 +342,7 @@ float leafEval(GameState state) {
             default:
                 assert(0);
             }
-            sum += sign * value * (1 + .01 * centerCoeff);
+            sum += sign * value * (1 + .05 * centerCoeff);
         }
     }
     return sum;

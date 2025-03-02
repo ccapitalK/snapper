@@ -23,6 +23,10 @@ class ChessAgent {
     string bestMove(string opts) {
         auto allMoves = currentBoard.validMoves();
         enforce(allMoves.length > 0);
-        return allMoves[uniform(0, allMoves.length, rnd)].move.getRepr;
+        int multForPlayer = currentBoard.turn == Player.black ? -1 : 1;
+        // Random
+        // return allMoves[uniform(0, allMoves.length, rnd)].move.getRepr;
+        // Best
+        return allMoves[].maxElement!(a => a.eval * multForPlayer).move.getRepr;
     }
 }
