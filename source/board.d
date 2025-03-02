@@ -18,7 +18,7 @@ static const MCoord[4] DIRS = [
     MCoord(0, -1),
     MCoord(-1, 0),
 ];
-auto atMostOne() => iota(-1, 2);
+static auto atMostOne() => iota(-1, 2);
 
 struct MCoord {
     // File, from 0
@@ -63,12 +63,12 @@ enum Piece : ubyte {
 }
 
 static const auto pieceByFenName = [
-    tuple('p', Piece.pawn),
-    tuple('r', Piece.rook),
-    tuple('n', Piece.knight),
-    tuple('b', Piece.bishop),
-    tuple('q', Piece.queen),
-    tuple('k', Piece.king),
+    tuple('p', Piece.pawn, 1),
+    tuple('r', Piece.rook, 5),
+    tuple('n', Piece.knight, 3),
+    tuple('b', Piece.bishop, 3),
+    tuple('q', Piece.queen, 9),
+    tuple('k', Piece.king, 4),
 ];
 
 align(1)
@@ -170,10 +170,6 @@ struct GameState {
     MCoord enPassant;
     ushort halfMove;
     ushort fullMove;
-}
-
-float leafEval(GameState state) {
-    return 0;
 }
 
 bool isInCheck(const ref GameState state, Player playerToCheck) {
@@ -317,6 +313,39 @@ unittest {
 struct MoveDest {
     GameState board;
     Move move;
+    // Positive for white, negative for black
+    float eval;
+}
+
+float leafEval(GameState state) {
+    auto sum = 0.0;
+    foreach (rank; 0 .. 8) {
+        foreach (file; 0 .. 8) {
+            auto centerCoeff = 1 - abs(((rank / 3.5) - 1) * ((file / 3.5) - 1));
+            auto square = state.board.getSquare(MCoord(file, rank));
+            auto piece = square.getPiece();
+            if (piece == Piece.empty) {
+                continue;
+            }
+            if (piece == Piece.king) {
+                centerCoeff = 1 - centerCoeff;
+            }
+            auto sign = square.getPlayer == Player.black ? -1 : 1;
+            int value;
+        pSwitch:
+            switch (piece) {
+                static foreach (v; pieceByFenName) {
+            case v[1]:
+                    value = v[2];
+                    break pSwitch;
+                }
+            default:
+                assert(0);
+            }
+            sum += sign * value * (1 + .01 * centerCoeff);
+        }
+    }
+    return sum;
 }
 
 MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
@@ -340,7 +369,7 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     }
     next.turn = cast(Player) !state.turn;
     // TODO: Mutate the board as well, needed for tree search
-    return MoveDest(next, Move(source, dest));
+    return MoveDest(next, Move(source, dest), next.leafEval());
 }
 
 unittest {
@@ -520,7 +549,7 @@ MoveDest[] validMoves(const ref GameState parent) {
     }
     auto moves = builder.data;
     foreach (move; moves) {
-        info(move.move.getRepr);
+        info(move.eval, ' ', move.move.getRepr);
     }
     return moves;
 }
