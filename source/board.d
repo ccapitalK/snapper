@@ -454,6 +454,9 @@ void addValidMovesForBishop(const ref GameState state, Appender!(MoveDest[])* bu
                     break;
                 }
                 builder.put(state.performMove(source, dest));
+                if (!state.board.isEmpty(dest)) {
+                    break;
+                }
             }
         }
     }
@@ -471,6 +474,9 @@ void addValidMovesForRook(const ref GameState state, Appender!(MoveDest[])* buil
                 break;
             }
             builder.put(state.performMove(source, dest));
+            if (!state.board.isEmpty(dest)) {
+                break;
+            }
         }
     }
 }
