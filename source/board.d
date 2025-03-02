@@ -555,7 +555,19 @@ MoveDest[] validMoves(const ref GameState parent) {
     }
     auto moves = builder.data;
     foreach (move; moves) {
-        info(move.eval, ' ', move.move.getRepr);
+        trace(move.eval, ' ', move.move.getRepr);
     }
     return moves;
+}
+
+MoveDest pickBestMove(const ref GameState source, int depth=4) {
+    int multForPlayer = source.turn == Player.black ? -1 : 1;
+    MoveDest[] children = source.validMoves;
+    return children.maxElement!((MoveDest child) {
+        double score = child.eval;
+        if (depth > 0) {
+            score = pickBestMove(child.board, depth - 1).eval;
+        }
+        return score * multForPlayer;
+    });
 }
