@@ -17,7 +17,7 @@ class ChessAgent {
     void setPosition(string fen) {
         currentBoard = fen.findSplitAfter(" ")[1].parseFen;
         info("Parsed position:");
-        info(currentBoard.board.getAsciiArtRepr);
+        info("\n" ~ currentBoard.board.getAsciiArtRepr);
     }
 
     string bestMove(string opts) {
