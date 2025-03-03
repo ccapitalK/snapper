@@ -545,20 +545,64 @@ MoveDest[] validMoves(const ref GameState parent) {
         }
     }
     auto moves = builder.data;
-    foreach (move; moves) {
-        trace(move.eval, ' ', move.move.getRepr);
-    }
+    // XXX This still uses CPU cycles, even when not enabled? wtf?
+    // foreach (move; moves) {
+    //     trace(move.eval, ' ', move.move.getRepr);
+    // }
     return moves;
 }
 
-MoveDest pickBestMove(const ref GameState source, int depth=4) {
-    int multForPlayer = source.turn == Player.black ? -1 : 1;
+// XXX Rename
+struct SearchCtx {
+    // By convention we assume optimizing player is white, pessimizing is black
+    float alpha = -1. / 0.;
+    float beta = 1. / 0.;
+}
+
+static int numFiltered = 0;
+
+// XXX This overshooting the amount of expected states being search by a few orders of magnitude
+// TODO: Switch to fail-soft
+private Nullable!(const MoveDest) pickBestMoveInner(const ref GameState source, SearchCtx ctx, int depth) {
+    auto isBlack = source.turn == Player.black;
+    int multForPlayer = isBlack ? -1 : 1;
     MoveDest[] children = source.validMoves;
-    return children.maxElement!((MoveDest child) {
+    children[].sort!((a, b) => multForPlayer * a.eval < multForPlayer * b.eval);
+    enforce(children.length > 0);
+    const(MoveDest) *best = null;
+    float bestScore = -1. / 0.;
+    foreach (const ref child; children) {
         double score = child.eval;
         if (depth > 0) {
-            score = pickBestMove(child.board, depth - 1).eval;
+            auto cont = pickBestMoveInner(child.board, ctx, depth - 1);
+            if (cont.isNull) {
+                continue;
+            }
+            score = cont.get.eval;
         }
-        return score * multForPlayer;
-    });
+        if (isBlack) {
+            // Minimizing
+            if (score < ctx.alpha) {
+                break;
+            }
+            ctx.beta = min(ctx.beta, score);
+        } else {
+            // Maximizing
+            if (score > ctx.beta) {
+                break;
+            }
+            ctx.alpha = max(ctx.alpha, score);
+        }
+        score *= multForPlayer;
+        if (score > bestScore) {
+            bestScore = score;
+            best = &child;
+        }
+    }
+    return best == null ? Nullable!(const MoveDest)() : (*best).nullable;
+}
+
+MoveDest pickBestMove(const ref GameState source, int depth = 4) {
+    SearchCtx ctx;
+    return source.pickBestMoveInner(ctx, depth).get;
 }
