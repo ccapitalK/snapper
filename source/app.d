@@ -6,6 +6,7 @@ import std.stdio;
 
 import chess_engine.agent;
 import chess_engine.repr;
+import chess_engine.search;
 
 class ChessEngine {
     ChessAgent agent;
@@ -72,8 +73,15 @@ class ChessEngine {
     }
 }
 
-void main() {
+void main(string[] args) {
     sharedLog = cast(shared) new FileLogger("run.log", LogLevel.info);
+    if (args[1 .. $] == ["bench"]) {
+        writeln("Running benchmark");
+        auto initial = "4kb1r/p4ppp/4q3/8/8/1B6/PPP2PPP/2KR4 w - - 0 1".parseFen;
+        writeln(initial.board.getAsciiArtRepr);
+        writeln(initial.pickBestMove(5));
+        return;
+    }
     // TODO: Increase log level to trace with a cmdline flag
     try {
         auto engine = new ChessEngine();
