@@ -56,7 +56,7 @@ struct SortOrder {
 private Nullable!SearchNode pickBestMoveInner(
     const ref GameState source,
     AlphaBeta ab,
-    shared SearchContext* context,
+    SearchContext* context,
     int depth,
 ) {
     if (context.isStopped.atomicLoad() == true) {
@@ -109,15 +109,15 @@ private Nullable!SearchNode pickBestMoveInner(
     return node.nullable;
 }
 
-MoveDest pickBestMove(const ref GameState source, int depth = 6, shared SearchContext* context = null) {
-    shared SearchContext empty;
+MoveDest pickBestMove(const ref GameState source, int depth = 6, SearchContext* context = null) {
+    SearchContext empty;
     if (context == null) {
         context = &empty;
     }
     AlphaBeta alphaBeta;
     auto startEvals = numEvals;
     auto bestMove = source.pickBestMoveInner(alphaBeta, context, depth).get;
-    infof("Evaluated %d positions for depth % search", numEvals - startEvals, depth);
+    infof("Evaluated %d positions for depth %d search", numEvals - startEvals, depth);
     infof("Best move: %s", bestMove);
     return bestMove.move;
 }
@@ -142,8 +142,8 @@ unittest {
 // TODO: We should be keeping some stuff from the previous iteration. This is more ad-hoc
 MoveDest pickBestMoveIterativeDeepening(
     const ref GameState source,
-    shared SearchContext* context,
-    int startNumIterations = 3,
+    SearchContext* context,
+    int startNumIterations = 1,
 ) {
     MoveDest move;
     bool hasMove = false;
@@ -155,6 +155,7 @@ MoveDest pickBestMoveIterativeDeepening(
             hasMove = true;
         }
     } catch (StopException) {
+        info("Interrupted!");
     }
     enforce(hasMove);
     return move;

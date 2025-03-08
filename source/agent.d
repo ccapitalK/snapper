@@ -32,7 +32,7 @@ class ChessAgent {
         // return allMoves[uniform(0, allMoves.length, rnd)].move.getRepr;
         // Best
         immutable string encoded = currentBoard.toFen();
-        auto context = new shared SearchContext;
+        auto context = new SearchContext;
         auto searchTask = task(&getBestMove, context, encoded);
         searchTask.executeInNewThread();
         Thread.sleep(3.seconds);
@@ -41,7 +41,7 @@ class ChessAgent {
     }
 }
 
-string getBestMove(shared SearchContext *context, immutable string fenBoard) {
+string getBestMove(SearchContext *context, immutable string fenBoard) {
     auto board = fenBoard.parseFen;
     return board.pickBestMoveIterativeDeepening(context).move.getRepr;
 }
