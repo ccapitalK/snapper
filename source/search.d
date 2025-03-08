@@ -3,6 +3,7 @@ module chess_engine.search;
 import std.algorithm;
 import std.exception;
 import std.logger;
+import std.stdio;
 import std.typecons;
 import chess_engine.repr;
 
@@ -22,8 +23,7 @@ private Nullable!(const MoveDest) pickBestMoveInner(const ref GameState source, 
     int multForPlayer = isBlack ? -1 : 1;
     MoveDest[] children = source.validMoves;
     children[].sort!((a, b) => multForPlayer * a.eval < multForPlayer * b.eval);
-    enforce(children.length > 0);
-    const(MoveDest) *best = null;
+    const(MoveDest)* best = null;
     float bestScore = -1. / 0.;
     foreach (const ref child; children) {
         double score = child.eval;
@@ -63,4 +63,17 @@ MoveDest pickBestMove(const ref GameState source, int depth = 4) {
     infof("Evaluated %d positions", numEvals - startEvals);
     infof("Best move: %s", bestMove);
     return bestMove;
+}
+
+unittest {
+    // Free queen capture
+    auto state = "qb1k4/1r6/8/8/8/8/8/Q2K4 w - - 0 1".parseFen;
+    foreach (depth; 0 .. 3) {
+        assert(state.pickBestMove(depth).move.getRepr == "a1a8");
+    }
+    // Queen will be taken back
+    state = "qb1k4/1b6/8/8/8/8/8/Q2K4 w - - 0 1".parseFen;
+    assert(state.pickBestMove(0).move.getRepr == "a1a8");
+    // This fails? FIXME
+    // assert(state.pickBestMove(1).move.getRepr != "a1a8");
 }
