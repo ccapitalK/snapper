@@ -163,7 +163,7 @@ static ulong numEvals;
 pragma(inline, false)
 float leafEval(GameState state) {
     auto sum = 0.0;
-    static auto genLookup(bool inv) {
+    static auto genLookup(bool protect) {
         float[64] arr;
         foreach (i, ref v; arr) {
             size_t x = i & 7;
@@ -171,19 +171,24 @@ float leafEval(GameState state) {
             auto v1 = (x / 3.5) - 1;
             auto v2 = (y / 3.5) - 1;
             auto m = abs(v1 * v2);
-            v = 1 + .05 * (inv ? (1 - m) : m);
+            v = 1 + .05 * (protect ? m : (1 - m));
         }
         return arr;
     }
-    static const auto LUTK = genLookup(false);
-    static const auto LUTN = genLookup(true);
+    static const auto LUTK = genLookup(true);
+    static const auto LUTN = genLookup(false);
     foreach (i; 0 .. 8 * 8) {
         int file = i & 7;
         int rank = i >> 3;
         const auto square = state.board.getSquare(file, rank);
         auto piece = square.getPiece();
-        auto coeff = piece == Piece.king ? LUTK[i] : LUTN[i];
-        sum += square.value * coeff;
+        if (piece == Piece.king) {
+            auto coeff = LUTK[i];
+            sum += square.value + coeff;
+        } else {
+            auto coeff = LUTN[i];
+            sum += square.value * coeff;
+        }
     }
     ++numEvals;
     return sum;

@@ -70,7 +70,7 @@ static const auto pieceByFenName = [
     tuple('n', Piece.knight, 3),
     tuple('b', Piece.bishop, 3),
     tuple('q', Piece.queen, 9),
-    tuple('k', Piece.king, 4),
+    tuple('k', Piece.king, 1_000),
 ];
 
 private int[16] genValuesArr() {

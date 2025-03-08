@@ -91,7 +91,7 @@ private Nullable!SearchNode pickBestMoveInner(const ref GameState source, Search
     return node.nullable;
 }
 
-MoveDest pickBestMove(const ref GameState source, int depth = 8) {
+MoveDest pickBestMove(const ref GameState source, int depth = 6) {
     SearchCtx ctx;
     auto startEvals = numEvals;
     auto bestMove = source.pickBestMoveInner(ctx, depth).get;
