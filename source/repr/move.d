@@ -13,12 +13,12 @@ import chess_engine.repr.board;
 import chess_engine.repr.state;
 
 struct MoveDest {
-    GameState board;
+    GameState state;
     Move move;
     // Positive for white, negative for black
     float eval;
 
-    string toString() const => format("%s = %s", move, eval);
+    string toString() const => format("%s => leaf(%s)", move.getRepr, eval);
 }
 
 MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
@@ -48,17 +48,17 @@ unittest {
     // Two simple moves
     auto state = "3k4/8/8/8/8/8/4B3/3K4 w - - 0 1".parseFen;
     auto result = state.performMove(MCoord(4, 1), MCoord(2, 3));
-    assert(result.board.toFen == "3k4/8/8/8/2B5/8/8/3K4 b - - 1 1");
-    state = result.board;
+    assert(result.state.toFen == "3k4/8/8/8/2B5/8/8/3K4 b - - 1 1");
+    state = result.state;
     result = state.performMove(MCoord(3, 7), MCoord(4, 6));
-    assert(result.board.toFen == "8/4k3/8/8/2B5/8/8/3K4 w - - 2 2");
+    assert(result.state.toFen == "8/4k3/8/8/2B5/8/8/3K4 w - - 2 2");
     // Pawn double move (test enPassant + halfMove)
     state = "3k4/8/8/8/8/8/3P4/3K4 w - - 0 1".parseFen;
     result = state.performMove(MCoord(3, 1), MCoord(3, 3));
-    assert(result.board.toFen == "3k4/8/8/8/3P4/8/8/3K4 b - d3 0 1");
-    state = result.board;
+    assert(result.state.toFen == "3k4/8/8/8/3P4/8/8/3K4 b - d3 0 1");
+    state = result.state;
     result = state.performMove(MCoord(3, 7), MCoord(3, 6));
-    assert(result.board.toFen == "8/3k4/8/8/3P4/8/8/3K4 w - - 1 2");
+    assert(result.state.toFen == "8/3k4/8/8/3P4/8/8/3K4 w - - 1 2");
 }
 
 pragma(inline, true)
