@@ -345,6 +345,17 @@ float leafEval(GameState state) {
     return sum;
 }
 
+unittest {
+    // KB > k, even if K close to center
+    assert("8/8/8/3k4/8/8/4B3/3K4 w - - 0 1".parseFen.leafEval >= 0);
+    // KB < kb if b closer to center
+    assert("3k4/8/8/4b3/8/8/4B3/3K4 w - - 0 1".parseFen.leafEval <= 0);
+    // KBB > kb
+    assert("3k4/8/8/4b3/8/8/3BB3/3K4 w - - 0 1".parseFen.leafEval >= 0);
+    // KQR > krr with rr close to center
+    assert("3k4/8/8/3rr3/8/8/8/Q2K3R w - - 0 1".parseFen.leafEval > 0);
+}
+
 MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     GameState next = state;
     auto sourceSquare = next.board.getSquare(source);
