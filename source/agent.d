@@ -29,7 +29,7 @@ class ChessAgent {
 
     string bestMove(string opts) {
         // Random
-        // return allMoves[uniform(0, allMoves.length, rnd)].move.getRepr;
+        // return allMoves[uniform(0, allMoves.length, rnd)].move.toString;
         // Best
         immutable string encoded = currentBoard.toFen();
         auto context = new SearchContext;
@@ -43,5 +43,5 @@ class ChessAgent {
 
 string getBestMove(SearchContext *context, immutable string fenBoard) {
     auto board = fenBoard.parseFen;
-    return board.pickBestMoveIterativeDeepening(context).move.getRepr;
+    return board.pickBestMoveIterativeDeepening(context).move.toString;
 }

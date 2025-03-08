@@ -126,17 +126,17 @@ unittest {
     // Free queen capture
     auto state = "qb1k4/1r6/8/8/8/8/8/Q2K4 w - - 0 1".parseFen;
     foreach (depth; 0 .. 3) {
-        assert(state.pickBestMove(depth).move.getRepr == "a1a8");
+        assert(state.pickBestMove(depth).move.toString == "a1a8");
     }
     // Queen will be taken back
     state = "rb1k4/1b6/8/8/8/8/8/Q2K4 w - - 0 1".parseFen;
-    assert(state.pickBestMove(0).move.getRepr == "a1a8"); // Free Rook (TODO Quiescence)
-    assert(state.pickBestMove(1).move.getRepr != "a1a8"); // Realize that the queen will be taken in response
+    assert(state.pickBestMove(0).move.toString == "a1a8"); // Free Rook (TODO Quiescence)
+    assert(state.pickBestMove(1).move.toString != "a1a8"); // Realize that the queen will be taken in response
     // Queen must be taken back
     state = "Qb1k4/1b6/8/8/8/8/8/3K4 b - - 0 1".parseFen;
-    assert(state.pickBestMove(0).move.getRepr == "b7a8");
+    assert(state.pickBestMove(0).move.toString == "b7a8");
     state = "r1bqkbnr/pppppppp/2n5/8/3P4/6P1/PPP1PP1P/RNBQKBNR b KQkq - 0 1".parseFen;
-    assert(state.pickBestMove(1).move.getRepr != "c6d4");
+    assert(state.pickBestMove(1).move.toString != "c6d4");
 }
 
 // TODO: We should be keeping some stuff from the previous iteration. This is more ad-hoc

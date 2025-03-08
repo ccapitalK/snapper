@@ -97,7 +97,7 @@ string toFen(const ref GameState state) {
                 builder.put(numEmpty.to!string);
                 numEmpty = 0;
             }
-            builder.put(square.getRepr);
+            builder.put(square.toString);
         }
         if (numEmpty > 0) {
             builder.put(numEmpty.to!string);
@@ -124,7 +124,7 @@ string toFen(const ref GameState state) {
     }
     // En passant
     builder.put(" ");
-    builder.put(state.enPassant == MCoord.invalid ? "-" : state.enPassant.getRepr);
+    builder.put(state.enPassant == MCoord.invalid ? "-" : state.enPassant.toString);
     // Half and FullMove
     builder.put(" %d %d".format(state.halfMove, state.fullMove));
     return builder.data();
@@ -153,7 +153,7 @@ unittest {
     assert(parsed.castling == Castling.all);
     assert(parsed.halfMove == 1);
     assert(parsed.fullMove == 2);
-    assert(MCoord(3, 4).getRepr == "d5");
+    assert(MCoord(3, 4).toString == "d5");
 }
 
 static ulong numEvals;

@@ -37,7 +37,7 @@ struct MCoord {
 
 bool isInBounds(MCoord coord) => ((coord.x & 7) == coord.x) && ((coord.y & 7) == coord.y);
 
-string getRepr(MCoord m) {
+string toString(MCoord m) {
     enforce(m.isInBounds);
     return cast(string)['a' + m.x, '1' + m.y];
 }
@@ -95,7 +95,7 @@ struct Square {
         v = cast(ubyte)((v & ~0x08) | (p << 3));
     }
 
-    char getRepr() const {
+    char toString() const {
         char c = ' ';
         auto piece = getPiece;
         static foreach (v; pieceByFenName) {

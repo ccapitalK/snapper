@@ -18,13 +18,13 @@ struct Move {
     Piece promotion = Piece.empty;
 }
 
-string getRepr(Move m) {
+string toString(Move m) {
     auto end = 4;
     char[5] data;
     // BLEGH, modules don't allow the same symbol to be defined in
     // two spaces, even for different types?
-    data[0 .. 2] = chess_engine.repr.board.getRepr(m.source)[];
-    data[2 .. 4] = chess_engine.repr.board.getRepr(m.dest)[];
+    data[0 .. 2] = chess_engine.repr.board.toString(m.source)[];
+    data[2 .. 4] = chess_engine.repr.board.toString(m.dest)[];
     static foreach (v; pieceByFenName) {
         if (m.promotion == v[1]) {
             data[4] = v[0];
@@ -40,7 +40,7 @@ struct MoveDest {
     // Positive for white, negative for black
     float eval;
 
-    string toString() const => format("%s => leaf(%s)", move.getRepr, eval);
+    string toString() const => format("%s => leaf(%s)", move.toString, eval);
 }
 
 MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
@@ -74,10 +74,10 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
 
 unittest {
     // Fomatting
-    assert(Move(MCoord(3, 4), MCoord(7, 0)).getRepr == "d5h1");
-    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.empty).getRepr == "d5h1");
-    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.queen).getRepr == "d5h1q");
-    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.knight).getRepr == "d5h1n");
+    assert(Move(MCoord(3, 4), MCoord(7, 0)).toString == "d5h1");
+    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.empty).toString == "d5h1");
+    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.queen).toString == "d5h1q");
+    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.knight).toString == "d5h1n");
     // Two simple moves
     auto state = "3k4/8/8/8/8/8/4B3/3K4 w - - 0 1".parseFen;
     auto result = state.performMove(MCoord(4, 1), MCoord(2, 3));
@@ -96,7 +96,7 @@ unittest {
     state = "8/7P/8/8/k7/8/8/K7 w - - 0 1".parseFen;
     result = state.performMove(MCoord(7, 6), MCoord(7, 7));
     assert(*result.state.board.getSquare(7, 7) == Square(Player.white, Piece.queen));
-    assert(result.move.getRepr() == "h7h8q");
+    assert(result.move.toString() == "h7h8q");
 }
 
 pragma(inline, true)
@@ -266,7 +266,7 @@ MoveDest[] validMoves(const ref GameState parent) {
     auto moves = builder.data;
     // XXX This still uses CPU cycles, even when not enabled? wtf?
     // foreach (move; moves) {
-    //     trace(move.eval, ' ', move.move.getRepr);
+    //     trace(move.eval, ' ', move.move.toString);
     // }
     return moves;
 }
