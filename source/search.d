@@ -25,14 +25,32 @@ struct SearchNode {
     float depthEval = 0.0;
 }
 
+// TODO: Is there a more idiomatic way of doing this?
+// Faster to sort indices than sort the array
+struct SortOrder {
+    ubyte[256] inds;
+    MoveDest[] vals;
+
+    this(MoveDest[] vals, int mult) {
+        enforce(vals.length <= 256);
+        this.vals = vals;
+        foreach (i; 0 .. vals.length) {
+            inds[i] = cast(ubyte) i;
+        }
+        inds[0 .. vals.length].sort!((i, j) => vals[i].eval * mult < vals[j].eval * mult);
+    }
+
+    auto range() const => inds[0 .. vals.length].map!(i => &vals[i]);
+}
+
 private Nullable!SearchNode pickBestMoveInner(const ref GameState source, SearchCtx ctx, int depth) {
     auto isBlack = source.turn == Player.black;
     int multForPlayer = isBlack ? -1 : 1;
     MoveDest[] children = source.validMoves;
-    children[].sort!((a, b) => multForPlayer * a.eval < multForPlayer * b.eval);
+    auto sortOrder = SortOrder(children, multForPlayer);
     const(MoveDest)* best = null;
     float bestScore = -INFINITY;
-    foreach (const ref child; children) {
+    foreach (const child; sortOrder.range) {
         bool shouldBreak = false;
         double score = child.eval;
         if (depth > 0) {
@@ -60,7 +78,7 @@ private Nullable!SearchNode pickBestMoveInner(const ref GameState source, Search
         float scoreForPlayer = score * multForPlayer;
         if (scoreForPlayer > bestScore) {
             bestScore = scoreForPlayer;
-            best = &child;
+            best = child;
         }
         if (shouldBreak) {
             break;
@@ -95,4 +113,6 @@ unittest {
     // Queen must be taken back
     state = "Qb1k4/1b6/8/8/8/8/8/3K4 b - - 0 1".parseFen;
     assert(state.pickBestMove(0).move.getRepr == "b7a8");
+    state = "r1bqkbnr/pppppppp/2n5/8/3P4/6P1/PPP1PP1P/RNBQKBNR b KQkq - 0 1".parseFen;
+    assert(state.pickBestMove(1).move.getRepr != "c6d4");
 }
