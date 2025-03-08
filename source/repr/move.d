@@ -37,6 +37,10 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
         next.enPassant = MCoord(dest.x, (dest.y + source.y) / 2);
     }
     next.halfMove = (isPawn || isCapture) ? 0 : cast(ushort)(state.halfMove + 1);
+    // FIXME: Promotion to pieces other than the queen are possible
+    if (isPawn && (dest.y == 0 || dest.y == 7)) {
+        *destSquare = Square(destSquare.getPlayer, Piece.queen);
+    }
     if (state.turn == Player.black) {
         ++next.fullMove;
     }
@@ -59,6 +63,10 @@ unittest {
     state = result.state;
     result = state.performMove(MCoord(3, 7), MCoord(3, 6));
     assert(result.state.toFen == "8/3k4/8/8/3P4/8/8/3K4 w - - 1 2");
+    // Pawn promotes to queen
+    state = "8/7P/8/8/k7/8/8/K7 w - - 0 1".parseFen;
+    result = state.performMove(MCoord(7, 6), MCoord(7, 7));
+    assert(*result.state.board.getSquare(7, 7) == Square(Player.white, Piece.queen));
 }
 
 pragma(inline, true)
