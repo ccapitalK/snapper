@@ -315,7 +315,11 @@ struct MoveDest {
     Move move;
     // Positive for white, negative for black
     float eval;
+
+    string toString() const => format("%s = %s", move, eval);
 }
+
+static ulong numEvals;
 
 float leafEval(GameState state) {
     auto sum = 0.0;
@@ -337,6 +341,7 @@ float leafEval(GameState state) {
             sum += sign * value * (1 + .05 * centerCoeff);
         }
     }
+    ++numEvals;
     return sum;
 }
 
@@ -604,5 +609,9 @@ private Nullable!(const MoveDest) pickBestMoveInner(const ref GameState source, 
 
 MoveDest pickBestMove(const ref GameState source, int depth = 4) {
     SearchCtx ctx;
-    return source.pickBestMoveInner(ctx, depth).get;
+    auto startEvals = numEvals;
+    auto bestMove = source.pickBestMoveInner(ctx, depth).get;
+    infof("Evaluated %d positions", numEvals - startEvals);
+    infof("Best move: %s", bestMove);
+    return bestMove;
 }
