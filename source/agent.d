@@ -7,6 +7,7 @@ import std.random;
 import std.stdio;
 
 import chess_engine.repr;
+import chess_engine.search;
 
 class ChessAgent {
     Mt19937 rnd;
