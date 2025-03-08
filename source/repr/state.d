@@ -159,6 +159,8 @@ unittest {
 
 static ulong numEvals;
 
+// TODO: Remove this, it makes profiling easier at the cost of making the search about 3-5% slower
+pragma(inline, false)
 float leafEval(GameState state) {
     auto sum = 0.0;
     static auto genLookup(bool inv) {
