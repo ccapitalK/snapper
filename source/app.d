@@ -47,8 +47,11 @@ class ChessEngine {
 
     void run() {
         performHandshake();
-        while (!pipeClosed) {
+        while (true) {
             auto command = readCommand();
+            if (pipeClosed) {
+                break;
+            }
             if (command.startsWith("position")) {
                 auto fen = command.findSplitAfter(" ")[1];
                 agent.setPosition(fen);
