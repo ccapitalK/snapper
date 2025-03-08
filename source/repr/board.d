@@ -73,8 +73,18 @@ static const auto pieceByFenName = [
     tuple('k', Piece.king, 4),
 ];
 
+private int[16] genValuesArr() {
+    int[16] x;
+    foreach (i; 0 .. pieceByFenName.length) {
+        x[i + 1] = pieceByFenName[i][2];
+        x[8 + i + 1] = -pieceByFenName[i][2];
+    }
+    return x;
+}
+
 align(1)
 struct Square {
+    private const static int[16] VALUES = genValuesArr();
     ubyte v;
 
     this(Player player, Piece piece) {
@@ -102,6 +112,8 @@ struct Square {
         }
         return getPlayer == Player.white ? std.ascii.toUpper(c) : c;
     }
+
+    int value() const nothrow => VALUES[v & 0xf];
 
     bool isEmpty() const => v == 0;
     static const Square empty;

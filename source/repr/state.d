@@ -161,23 +161,27 @@ static ulong numEvals;
 
 float leafEval(GameState state) {
     auto sum = 0.0;
-    // TODO: One true source for this
-    static const int[] VALUES = [0, 1, 5, 3, 3, 9, 4];
-    foreach (rank; 0 .. 8) {
-        foreach (file; 0 .. 8) {
-            const auto square = state.board.getSquare(file, rank);
-            auto piece = square.getPiece();
-            if (piece == Piece.empty) {
-                continue;
-            }
-            auto centerCoeff = abs(((rank / 3.5) - 1) * ((file / 3.5) - 1));
-            if (piece != Piece.king) {
-                centerCoeff = 1 - centerCoeff;
-            }
-            auto sign = square.getPlayer == Player.black ? -1 : 1;
-            int value = VALUES[piece];
-            sum += sign * value * (1 + .05 * centerCoeff);
+    static auto genLookup(bool inv) {
+        float[64] arr;
+        foreach (i, ref v; arr) {
+            size_t x = i & 7;
+            size_t y = i >> 3;
+            auto v1 = (x / 3.5) - 1;
+            auto v2 = (y / 3.5) - 1;
+            auto m = abs(v1 * v2);
+            v = 1 + .05 * (inv ? (1 - m) : m);
         }
+        return arr;
+    }
+    static const auto LUTK = genLookup(false);
+    static const auto LUTN = genLookup(true);
+    foreach (i; 0 .. 8 * 8) {
+        int file = i & 7;
+        int rank = i >> 3;
+        const auto square = state.board.getSquare(file, rank);
+        auto piece = square.getPiece();
+        auto coeff = piece == Piece.king ? LUTK[i] : LUTN[i];
+        sum += square.value * coeff;
     }
     ++numEvals;
     return sum;
