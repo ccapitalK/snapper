@@ -12,6 +12,28 @@ import std.typecons;
 import chess_engine.repr.board;
 import chess_engine.repr.state;
 
+struct Move {
+    MCoord source;
+    MCoord dest;
+    Piece promotion = Piece.empty;
+}
+
+string getRepr(Move m) {
+    auto end = 4;
+    char[5] data;
+    // BLEGH, modules don't allow the same symbol to be defined in
+    // two spaces, even for different types?
+    data[0 .. 2] = chess_engine.repr.board.getRepr(m.source)[];
+    data[2 .. 4] = chess_engine.repr.board.getRepr(m.dest)[];
+    static foreach (v; pieceByFenName) {
+        if (m.promotion == v[1]) {
+            data[4] = v[0];
+            end = 5;
+        }
+    }
+    return data[0 .. end].idup;
+}
+
 struct MoveDest {
     GameState state;
     Move move;
@@ -22,6 +44,7 @@ struct MoveDest {
 }
 
 MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
+    Piece promotion = Piece.empty;
     GameState next = state;
     auto sourceSquare = next.board.getSquare(source);
     auto destSquare = next.board.getSquare(dest);
@@ -40,15 +63,21 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     // FIXME: Promotion to pieces other than the queen are possible
     if (isPawn && (dest.y == 0 || dest.y == 7)) {
         *destSquare = Square(destSquare.getPlayer, Piece.queen);
+        promotion = Piece.queen;
     }
     if (state.turn == Player.black) {
         ++next.fullMove;
     }
     next.turn = cast(Player) !state.turn;
-    return MoveDest(next, Move(source, dest), next.leafEval());
+    return MoveDest(next, Move(source, dest, promotion), next.leafEval());
 }
 
 unittest {
+    // Fomatting
+    assert(Move(MCoord(3, 4), MCoord(7, 0)).getRepr == "d5h1");
+    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.empty).getRepr == "d5h1");
+    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.queen).getRepr == "d5h1q");
+    assert(Move(MCoord(3, 4), MCoord(7, 0), Piece.knight).getRepr == "d5h1n");
     // Two simple moves
     auto state = "3k4/8/8/8/8/8/4B3/3K4 w - - 0 1".parseFen;
     auto result = state.performMove(MCoord(4, 1), MCoord(2, 3));
@@ -67,6 +96,7 @@ unittest {
     state = "8/7P/8/8/k7/8/8/K7 w - - 0 1".parseFen;
     result = state.performMove(MCoord(7, 6), MCoord(7, 7));
     assert(*result.state.board.getSquare(7, 7) == Square(Player.white, Piece.queen));
+    assert(result.move.getRepr() == "h7h8q");
 }
 
 pragma(inline, true)

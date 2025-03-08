@@ -37,17 +37,10 @@ struct MCoord {
 
 bool isInBounds(MCoord coord) => ((coord.x & 7) == coord.x) && ((coord.y & 7) == coord.y);
 
-struct Move {
-    MCoord source;
-    MCoord dest;
-}
-
 string getRepr(MCoord m) {
-    enforce(m != MCoord.invalid);
+    enforce(m.isInBounds);
     return cast(string)['a' + m.x, '1' + m.y];
 }
-
-string getRepr(Move m) => m.source.getRepr ~ m.dest.getRepr;
 
 enum Player : ubyte {
     white = 0,

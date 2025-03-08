@@ -154,7 +154,6 @@ unittest {
     assert(parsed.halfMove == 1);
     assert(parsed.fullMove == 2);
     assert(MCoord(3, 4).getRepr == "d5");
-    assert(Move(MCoord(3, 4), MCoord(7, 0)).getRepr == "d5h1");
 }
 
 static ulong numEvals;
