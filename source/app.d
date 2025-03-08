@@ -79,7 +79,7 @@ void main(string[] args) {
         writeln("Running benchmark");
         auto initial = "4kb1r/p4ppp/4q3/8/8/1B6/PPP2PPP/2KR4 w - - 0 1".parseFen;
         writeln(initial.board.getAsciiArtRepr);
-        writeln(initial.pickBestMove(5));
+        writeln(initial.pickBestMove());
         return;
     }
     // TODO: Increase log level to trace with a cmdline flag

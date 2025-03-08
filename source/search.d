@@ -37,7 +37,7 @@ struct SortOrder {
         foreach (i; 0 .. vals.length) {
             inds[i] = cast(ubyte) i;
         }
-        inds[0 .. vals.length].sort!((i, j) => vals[i].eval * mult < vals[j].eval * mult);
+        inds[0 .. vals.length].sort!((i, j) => vals[i].eval * mult > vals[j].eval * mult);
     }
 
     auto range() const => inds[0 .. vals.length].map!(i => &vals[i]);
@@ -91,7 +91,7 @@ private Nullable!SearchNode pickBestMoveInner(const ref GameState source, Search
     return node.nullable;
 }
 
-MoveDest pickBestMove(const ref GameState source, int depth = 5) {
+MoveDest pickBestMove(const ref GameState source, int depth = 8) {
     SearchCtx ctx;
     auto startEvals = numEvals;
     auto bestMove = source.pickBestMoveInner(ctx, depth).get;
