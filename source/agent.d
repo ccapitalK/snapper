@@ -1,8 +1,12 @@
 module chess_engine.agent;
 
+import core.atomic;
+import core.thread;
+import core.time;
 import std.algorithm;
 import std.exception;
 import std.logger;
+import std.parallelism;
 import std.random;
 import std.stdio;
 
@@ -24,11 +28,20 @@ class ChessAgent {
     }
 
     string bestMove(string opts) {
-        auto allMoves = currentBoard.validMoves();
-        enforce(allMoves.length > 0);
         // Random
         // return allMoves[uniform(0, allMoves.length, rnd)].move.getRepr;
         // Best
-        return currentBoard.pickBestMove().move.getRepr;
+        immutable string encoded = currentBoard.toFen();
+        auto context = new shared SearchContext;
+        auto searchTask = task(&getBestMove, context, encoded);
+        searchTask.executeInNewThread();
+        Thread.sleep(3.seconds);
+        context.isStopped.atomicStore(true);
+        return searchTask.yieldForce;
     }
+}
+
+string getBestMove(shared SearchContext *context, immutable string fenBoard) {
+    auto board = fenBoard.parseFen;
+    return board.pickBestMoveIterativeDeepening(context).move.getRepr;
 }
