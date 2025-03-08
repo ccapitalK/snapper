@@ -1,3 +1,5 @@
+module chess_engine.repr.board;
+
 import std.algorithm;
 import std.array;
 import std.ascii;

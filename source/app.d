@@ -1,14 +1,14 @@
+module chess_engine.app;
 import std.algorithm;
 import std.exception;
 import std.logger;
 import std.stdio;
 
-import agent;
-import board;
+import chess_engine.agent;
+import chess_engine.repr;
 
 class ChessEngine {
     ChessAgent agent;
-    // XXX Use std.logging
     bool pipeClosed = false;
     string lastCommand;
 

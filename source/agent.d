@@ -1,10 +1,12 @@
+module chess_engine.agent;
+
 import std.algorithm;
 import std.exception;
 import std.logger;
 import std.random;
 import std.stdio;
 
-import board;
+import chess_engine.repr;
 
 class ChessAgent {
     Mt19937 rnd;
