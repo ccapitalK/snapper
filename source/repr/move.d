@@ -89,6 +89,10 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     return MoveDest(next, Move(source, dest, promotion), next.leafEval());
 }
 
+MoveDest performMove(const ref GameState state, Move move) {
+    return state.performMove(move.source, move.dest);
+}
+
 unittest {
     // Fomatting
     assert(Move(MCoord(3, 4), MCoord(7, 0)).toString == "d5h1");
@@ -281,9 +285,5 @@ MoveDest[] validMoves(const ref GameState parent) {
         }
     }
     auto moves = builder.data;
-    // XXX This still uses CPU cycles, even when not enabled? wtf?
-    // foreach (move; moves) {
-    //     trace(move.eval, ' ', move.move.toString);
-    // }
     return moves;
 }

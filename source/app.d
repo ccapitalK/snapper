@@ -5,6 +5,7 @@ import std.logger;
 import std.stdio;
 
 import chess_engine.agent;
+import chess_engine.puzzle;
 import chess_engine.repr;
 import chess_engine.search;
 
@@ -75,13 +76,24 @@ class ChessEngine {
     }
 }
 
-void main(string[] args) {
-    sharedLog = cast(shared) new FileLogger("run.log", LogLevel.info);
+void runDiagnostic(string[] args) {
     if (args[1 .. $] == ["bench"]) {
         writeln("Running benchmark");
         auto initial = "4kb1r/p4ppp/4q3/8/8/1B6/PPP2PPP/2KR4 w - - 0 1".parseFen;
         writeln(initial.board.getAsciiArtRepr);
         writeln(initial.pickBestMove());
+        return;
+    }
+    if (args[1 .. $] == ["heavyTest"]) {
+        runHeavyTests();
+        return;
+    }
+}
+
+void main(string[] args) {
+    sharedLog = cast(shared) new FileLogger("run.log", LogLevel.info);
+    if (args.length > 1) {
+        runDiagnostic(args);
         return;
     }
     // TODO: Increase log level to trace with a cmdline flag

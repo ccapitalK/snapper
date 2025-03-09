@@ -7,7 +7,6 @@ import std.algorithm;
 import std.exception;
 import std.logger;
 import std.parallelism;
-import std.random;
 import std.string : strip;
 
 import chess_engine.repr;
@@ -60,12 +59,9 @@ unittest {
 }
 
 class ChessAgent {
-    Mt19937 rnd;
     GameState currentBoard;
-
-    this() {
-        rnd.seed(1337);
-    }
+    // FIXME: For some reason, sleep always overshoots by exactly 400msecs, so we cut down
+    static const Duration DEFAULT_DURATION = 2.seconds + 600.msecs;
 
     void handleUciPositionCommand(string uciCommand) {
         currentBoard = uciCommand.readUCIPosition;
@@ -73,13 +69,12 @@ class ChessAgent {
         info("\n" ~ currentBoard.board.getAsciiArtRepr);
     }
 
-    string bestMove(string opts) {
+    string bestMove(string opts, Duration thinkTime = 3.seconds) {
         string encoded = currentBoard.toFen();
         auto context = new SearchContext;
         auto searchTask = task(&getBestMove, context, encoded);
         searchTask.executeInNewThread();
-        // FIXME: Weird bug I'm seeing where sleep overshoots by exactly 400msecs
-        Thread.sleep(2.seconds + 600.msecs);
+        Thread.sleep(thinkTime);
         context.isStopped.atomicStore(true);
         return searchTask.yieldForce;
     }
