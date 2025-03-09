@@ -75,12 +75,16 @@ private Nullable!SearchNode pickBestMoveInner(
         // FIXME: We should be checking if both kings are present,
         // as a quick hack we are only checking if a king is gone (+100k)
         bool isTerminal = abs(score) > 10_000;
-        if (depth > 0 && !isTerminal) {
-            auto cont = pickBestMoveInner(child.state, ab, context, depth - 1);
-            if (cont.isNull) {
-                continue;
+        if (depth > 0) {
+            if (isTerminal) {
+                score *= depth; // Favour later defeat and earlier checkmate
+            } else {
+                auto cont = pickBestMoveInner(child.state, ab, context, depth - 1);
+                if (cont.isNull) {
+                    continue;
+                }
+                score = cont.get.depthEval;
             }
-            score = cont.get.depthEval;
         }
         if (isBlack) {
             // Minimizing
