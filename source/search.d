@@ -66,10 +66,18 @@ struct SortOrder {
         enforce(vals.length <= 256);
         this.vals = vals;
         this.principal = principal;
+        if (vals.length == 0) {
+            return;
+        }
+        size_t start = 0;
         foreach (i; 0 .. vals.length) {
             inds[i] = cast(ubyte) i;
+            if (vals[i].move == principal) {
+                swap(inds[0], inds[i]);
+                ++start;
+            }
         }
-        inds[0 .. vals.length].sort!((i, j) => vals[i].move == principal || vals[i].eval * mult > vals[j].eval * mult);
+        inds[start .. vals.length].sort!((i, j) => vals[i].eval * mult > vals[j].eval * mult);
     }
 
     auto range() const => inds[0 .. vals.length].map!(i => &vals[i]);

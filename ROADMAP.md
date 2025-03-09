@@ -24,6 +24,6 @@
 - [X] Alpha-Beta pruning
 - [X] Iterative Deepening
 - [ ] Quiescence
-- [ ] Transposition tables
+- [X] Transposition tables
 - [X] Reuse the principle variation when deepening
 - [ ] Cuda tree search?
