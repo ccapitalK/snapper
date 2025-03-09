@@ -62,8 +62,7 @@ unittest {
         ~ " a1a2 e1c3 h8g8 c1f4 a2b1 f1b1 c7c6 c3c5 g7g5 c5b6 d8d7 d4d5 f6d5"
         ~ " f3g4 e7e6 b6c5 f8c5 b1d1";
     position = command.readUCIPosition;
-    assert(position.toFen.startsWith("r1b3r1/1p1k1p2/2p1p2p/p1bn2p1/5BB1/8/5PPP/3R2K1 b KQkq -"));
-    // assert(position.toFen.startsWith("r1b3r1/1p1k1p2/2p1p2p/p1bn2p1/5BB1/8/5PPP/3R2K1 b - -"));
+    assert(position.toFen.startsWith("r1b3r1/1p1k1p2/2p1p2p/p1bn2p1/5BB1/8/5PPP/3R2K1 b - -"));
 }
 
 class ChessAgent {

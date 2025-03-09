@@ -42,6 +42,16 @@ string toString(MCoord m) {
     return cast(string)['a' + m.x, '1' + m.y];
 }
 
+MCoord parseCoord(string coordString) {
+    enforce(coordString.length == 2);
+    auto coord = MCoord(
+        cast(ubyte) (coordString[0] - 'a'),
+        cast(ubyte) (coordString[1] - '1'),
+    );
+    enforce(coord.isInBounds);
+    return coord;
+}
+
 enum Player : ubyte {
     white = 0,
     black,

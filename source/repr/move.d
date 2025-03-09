@@ -3,10 +3,11 @@ module chess_engine.repr.move;
 import std.algorithm;
 import std.array;
 import std.ascii;
+import std.exception;
 import std.format;
 import std.logger;
 import std.math : abs;
-import std.exception;
+import std.traits;
 import std.typecons;
 
 import chess_engine.repr.board;
@@ -21,10 +22,8 @@ struct Move {
 Move parseMove(string moveStr) {
     enforce(moveStr.length == 4 || moveStr.length == 5);
     Move move;
-    move.source.x = cast(ubyte) (moveStr[0] - 'a');
-    move.source.y = cast(ubyte) (moveStr[1] - '1');
-    move.dest.x = cast(ubyte) (moveStr[2] - 'a');
-    move.dest.y = cast(ubyte) (moveStr[3] - '1');
+    move.source = parseCoord(moveStr[0 .. 2]);
+    move.dest = parseCoord(moveStr[2 .. 4]);
     if (moveStr.length == 5) {
         static foreach (v; pieceByFenName) {
             if (moveStr[4] == v[0]) {
@@ -60,7 +59,19 @@ struct MoveDest {
     string toString() const => format("%s => leaf(%s)", move.toString, eval);
 }
 
+struct CastlingCheck {
+    MCoord pos;
+    Player player;
+    string side;
+}
+
 MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
+    const static CastlingCheck[4] castlingChecks = [
+        CastlingCheck("a1".parseCoord, Player.white, "queen"),
+        CastlingCheck("h1".parseCoord, Player.white, "king"),
+        CastlingCheck("a8".parseCoord, Player.black, "queen"),
+        CastlingCheck("h8".parseCoord, Player.black, "king"),
+    ];
     Piece promotion = Piece.empty;
     GameState next = state;
     auto sourceSquare = next.board.getSquare(source);
@@ -69,9 +80,11 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     enforce(destSquare.isEmpty || destSquare.getPlayer != state.turn);
 
     bool isPawn = sourceSquare.getPiece == Piece.pawn;
+    bool isKing = sourceSquare.getPiece == Piece.king;
     bool isCapture = !destSquare.isEmpty;
-    bool isCastling = sourceSquare.getPiece == Piece.king && abs(dest.x - source.x) > 1;
+    bool isCastling = isKing && abs(dest.x - source.x) > 1;
 
+    // Castling
     *destSquare = *sourceSquare;
     *sourceSquare = Square.empty;
     if (isCastling) {
@@ -81,16 +94,34 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
         *next.board.getSquare(MCoord(origFile, rank)) = Square.empty;
         *next.board.getSquare(MCoord(newFile, rank)) = Square(state.turn, Piece.rook);
     }
+    if (isCastling || isKing) {
+        next.castling.king[state.turn] = 0;
+        next.castling.queen[state.turn] = 0;
+    } else {
+        static foreach (player; EnumMembers!Player) {
+            static foreach (check; castlingChecks) {
+                {
+                    const static string lookup = ".castling." ~ check.side ~ "[player]";
+                    bool isCoord = source == check.pos || dest == check.pos;
+                    if (check.player == player && mixin("state" ~ lookup) && isCoord) {
+                        mixin("next" ~ lookup) = false;
+                    }
+                }
+            }
+        }
+    }
+    // Pawn moves
     next.enPassant = MCoord.invalid;
     if (isPawn && abs(dest.y - source.y) > 1) {
         next.enPassant = MCoord(dest.x, (dest.y + source.y) / 2);
     }
-    next.halfMove = (isPawn || isCapture) ? 0 : cast(ushort)(state.halfMove + 1);
     // FIXME: Promotion to pieces other than the queen are possible
     if (isPawn && (dest.y == 0 || dest.y == 7)) {
         *destSquare = Square(destSquare.getPlayer, Piece.queen);
         promotion = Piece.queen;
     }
+    // Advance states
+    next.halfMove = (isPawn || isCapture) ? 0 : cast(ushort)(state.halfMove + 1);
     if (state.turn == Player.black) {
         ++next.fullMove;
     }
@@ -127,15 +158,35 @@ unittest {
     result = state.performMove(MCoord(7, 6), MCoord(7, 7));
     assert(*result.state.board.getSquare(7, 7) == Square(Player.white, Piece.queen));
     assert(result.move.toString() == "h7h8q");
-    // Castling
+    // Castling should move the pieces
     state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
     result = state.performMove("e1g1".parseMove);
     assert(*result.state.board.getSquare(6, 0) == Square(Player.white, Piece.king));
     assert(*result.state.board.getSquare(5, 0) == Square(Player.white, Piece.rook));
+    assert(result.state.castling == Castling.none);
     state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
     result = state.performMove("e1c1".parseMove);
     assert(*result.state.board.getSquare(2, 0) == Square(Player.white, Piece.king));
     assert(*result.state.board.getSquare(3, 0) == Square(Player.white, Piece.rook));
+    assert(result.state.castling == Castling.none);
+    state = "r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1".parseFen;
+    result = state.performMove("e8c8".parseMove);
+    assert(*result.state.board.getSquare(2, 7) == Square(Player.black, Piece.king));
+    assert(*result.state.board.getSquare(3, 7) == Square(Player.black, Piece.rook));
+    assert(result.state.castling == Castling.none);
+    // Castling should be invalidated
+    state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
+    result = state.performMove("a1b1".parseMove);
+    assert(result.state.castling == Castling([true, false], [false, false]));
+    state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
+    result = state.performMove("h1h2".parseMove);
+    assert(result.state.castling == Castling([false, false], [true, false]));
+    state = "r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1".parseFen;
+    result = state.performMove("a8b8".parseMove);
+    assert(result.state.castling == Castling([false, true], [false, false]));
+    state = "r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1".parseFen;
+    result = state.performMove("e8d8".parseMove);
+    assert(result.state.castling == Castling([false, false], [false, false]));
 }
 
 pragma(inline, true)
