@@ -12,7 +12,7 @@ This engine runs best when compiled with ldc in release mode.
 
 ```
 dub build -b release --compiler=ldc
-./chess_engine -- heavyTest
+./chess_engine heavyTest
 ```
 
 The chess engine should now be built as `./chess_engine`.
