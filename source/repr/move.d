@@ -18,6 +18,23 @@ struct Move {
     Piece promotion = Piece.empty;
 }
 
+Move parseMove(string moveStr) {
+    enforce(moveStr.length == 4 || moveStr.length == 5);
+    Move move;
+    move.source.x = cast(ubyte) (moveStr[0] - 'a');
+    move.source.y = cast(ubyte) (moveStr[1] - '1');
+    move.dest.x = cast(ubyte) (moveStr[2] - 'a');
+    move.dest.y = cast(ubyte) (moveStr[3] - '1');
+    if (moveStr.length == 5) {
+        static foreach (v; pieceByFenName) {
+            if (moveStr[4] == v[0]) {
+                move.promotion = v[1];
+            }
+        }
+    }
+    return move;
+}
+
 string toString(Move m) {
     auto end = 4;
     char[5] data;

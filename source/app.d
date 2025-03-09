@@ -53,8 +53,7 @@ class ChessEngine {
                 break;
             }
             if (command.startsWith("position")) {
-                auto fen = command.findSplitAfter(" ")[1];
-                agent.setPosition(fen);
+                agent.handleUciPositionCommand(command);
                 continue;
             }
             if (command.startsWith("go")) {
