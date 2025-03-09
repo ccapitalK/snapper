@@ -183,7 +183,8 @@ float leafEval(GameState state) {
         auto piece = square.getPiece();
         if (piece == Piece.king) {
             auto coeff = LUTK[i];
-            sum += square.value + coeff;
+            auto mult = square.getPlayer() == Player.black ? -1 : 1;
+            sum += square.value + mult * coeff;
         } else {
             auto coeff = LUTN[i];
             sum += square.value * coeff;
@@ -197,8 +198,7 @@ unittest {
     // KB > k, even if K close to center
     assert("8/8/8/3k4/8/8/4B3/3K4 w - - 0 1".parseFen.leafEval >= 0);
     // KB < kb if b closer to center
-    // FIXME: This should be true even with checkmate shenanigans. Need insufficient material check?
-    // assert("3k4/8/8/4b3/8/8/4B3/3K4 w - - 0 1".parseFen.leafEval <= 0);
+    assert("3k4/8/8/4b3/8/8/4B3/3K4 w - - 0 1".parseFen.leafEval <= 0);
     // KBB > kb
     assert("3k4/8/8/4b3/8/8/3BB3/3K4 w - - 0 1".parseFen.leafEval >= 0);
     // KQR > krr with rr close to center
