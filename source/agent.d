@@ -8,7 +8,6 @@ import std.exception;
 import std.logger;
 import std.parallelism;
 import std.random;
-import std.stdio;
 import std.string : strip;
 
 import chess_engine.repr;
@@ -36,7 +35,6 @@ GameState readUCIPosition(string uciCommand) {
     if (moveComponents.length > 0) {
         foreach (moveString; moveComponents.splitter(" ")) {
             auto move = moveString.parseMove();
-            writeln("Parsed move ", moveString, ' ', move.toString);
             position = position.performMove(move.source, move.dest).state;
         }
     }
@@ -58,7 +56,6 @@ unittest {
     assert(position.toFen == START_POSITION);
     command = "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4";
     position = command.readUCIPosition;
-    writeln(position.toFen);
     assert(position.toFen == "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 }
 

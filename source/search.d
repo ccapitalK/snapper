@@ -4,6 +4,7 @@ import core.atomic;
 import std.algorithm;
 import std.exception;
 import std.logger;
+import std.math : abs;
 import std.stdio;
 import std.typecons;
 import chess_engine.repr;
@@ -71,7 +72,10 @@ private Nullable!SearchNode pickBestMoveInner(
     foreach (const child; sortOrder.range) {
         bool shouldBreak = false;
         double score = child.eval;
-        if (depth > 0) {
+        // FIXME: We should be checking if both kings are present,
+        // as a quick hack we are only checking if a king is gone (+100k)
+        bool isTerminal = abs(score) > 10_000;
+        if (depth > 0 && !isTerminal) {
             auto cont = pickBestMoveInner(child.state, ab, context, depth - 1);
             if (cont.isNull) {
                 continue;
@@ -137,6 +141,9 @@ unittest {
     assert(state.pickBestMove(0).move.toString == "b7a8");
     state = "r1bqkbnr/pppppppp/2n5/8/3P4/6P1/PPP1PP1P/RNBQKBNR b KQkq - 0 1".parseFen;
     assert(state.pickBestMove(1).move.toString != "c6d4");
+    state= "7k/5ppp/8/8/8/4r3/8/2QK4 w - - 0 1".parseFen;
+    assert(state.pickBestMove(1).move.toString != "c1c3");
+    assert(state.pickBestMove(3).move.toString != "c1c8");
 }
 
 // TODO: We should be keeping some stuff from the previous iteration. This is more ad-hoc
