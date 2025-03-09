@@ -84,6 +84,14 @@ void runDiagnostic(string[] args) {
         writeln(initial.pickBestMove());
         return;
     }
+    if (args[1 .. $] == ["benchDeepen"]) {
+        writeln("Running deepening benchmark");
+        auto initialState = "4kb1r/p4ppp/4q3/8/8/1B6/PPP2PPP/2KR4 w - - 0 1";
+        auto agent = new ChessAgent;
+        agent.handleUciPositionCommand("position fen " ~ initialState);
+        info("Best move: ", agent.bestMove(""));
+        return;
+    }
     if (args[1 .. $] == ["heavyTest"]) {
         runHeavyTests();
         return;
