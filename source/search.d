@@ -20,8 +20,9 @@ const static float INFINITY = 1. / 0.;
 // TODO: Clean this whole module up
 struct SearchContext {
     Move[] currentBestVariation;
+    // Transposition table
+    bool[const(GameState)] seen;
     shared bool isStopped = false;
-    // TODO: transposition table
 }
 
 struct SearchFrame {
@@ -83,6 +84,10 @@ private SearchNode pickBestMoveInner(
     if (context.isStopped.atomicLoad() == true) {
         throw new StopException();
     }
+    if (source in context.seen) {
+        return null;
+    }
+    context.seen[source] = true;
     auto isBlack = source.turn == Player.black;
     int multForPlayer = isBlack ? -1 : 1;
     MoveDest[] children = source.validMoves;
@@ -150,7 +155,7 @@ MoveDest pickBestMove(
     auto startEvals = numEvals;
     auto bestMove = source.pickBestMoveInner(frame, context, depth);
     infof("Evaluated %d positions for depth %d search", numEvals - startEvals, depth);
-    infof("Best move: %s", bestMove);
+    infof("Best move: %s", bestMove.move);
     context.currentBestVariation = [];
     for (SearchNode node = bestMove; node !is null; node = node.principal) {
         context.currentBestVariation ~= node.move.move;
@@ -190,6 +195,7 @@ MoveDest pickBestMoveIterativeDeepening(
     try {
         // We aren't ever going above 15
         foreach (depth; startNumIterations .. 15) {
+            context.seen.clear();
             MoveDest found = source.pickBestMove(depth, frame, context);
             move = found;
             hasMove = true;
