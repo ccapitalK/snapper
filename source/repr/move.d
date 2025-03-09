@@ -144,7 +144,6 @@ void addValidMovesForPawn(const ref GameState state, Appender!(MoveDest[])* buil
     static const int[2] DOUBLE_RANK = [1, 6];
     static const int[2] FORWARD_DIR = [1, -1];
     auto currentTurn = state.turn;
-    // TODO: Double move
     auto forward = MCoord(source.x, source.y + FORWARD_DIR[currentTurn]);
     // Pawns on the back rank are illegal
     enforce(forward.isInBounds);
@@ -158,10 +157,9 @@ void addValidMovesForPawn(const ref GameState state, Appender!(MoveDest[])* buil
             builder.put(state.performMove(source, doubleForward));
         }
     }
-    // TODO: En-passant
     foreach (sign; SIGNS) {
         auto dest = MCoord(source.x + sign, source.y + FORWARD_DIR[currentTurn]);
-        if (state.canTake(source, dest)) {
+        if (state.canTake(source, dest) || state.enPassant == dest) {
             builder.put(state.performMove(source, dest));
         }
     }
@@ -170,6 +168,8 @@ void addValidMovesForPawn(const ref GameState state, Appender!(MoveDest[])* buil
 unittest {
     auto state = "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq - 0 1".parseFen;
     assert(state.validMoves.length == 6);
+    state = "k7/8/8/5Pp1/8/8/8/K7 w - g6 0 1".parseFen;
+    assert(state.validMoves.length == 5);
 }
 
 pragma(inline, true)

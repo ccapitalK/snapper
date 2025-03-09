@@ -76,7 +76,7 @@ GameState parseFen(string input) {
     if (parts[3] == "-") {
         fen.enPassant = MCoord.invalid;
     } else {
-        fen.enPassant = MCoord(cast(ubyte)(parts[3][1] - '1'), cast(ubyte)(parts[3][0] - 'a'));
+        fen.enPassant = MCoord(cast(ubyte)(parts[3][0] - 'a'), cast(ubyte)(parts[3][1] - '1'));
     }
     fen.halfMove = parts[4].to!ushort;
     fen.fullMove = parts[5].to!ushort;
@@ -138,6 +138,7 @@ unittest {
         "3k4/8/8/8/2B5/8/8/3K4 b KQk - 1 1",
         "3k4/8/8/8/2B5/8/8/3K4 w KQk - 2 2",
         "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq - 0 1",
+        "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq f6 0 1",
     ];
     foreach (board; boards) {
         auto parsed = board.parseFen;
