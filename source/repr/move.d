@@ -67,11 +67,20 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     auto destSquare = next.board.getSquare(dest);
     enforce(!sourceSquare.isEmpty && sourceSquare.getPlayer == state.turn);
     enforce(destSquare.isEmpty || destSquare.getPlayer != state.turn);
+
     bool isPawn = sourceSquare.getPiece == Piece.pawn;
     bool isCapture = !destSquare.isEmpty;
+    bool isCastling = sourceSquare.getPiece == Piece.king && abs(dest.x - source.x) > 1;
+
     *destSquare = *sourceSquare;
     *sourceSquare = Square.empty;
-    // TODO: Castling
+    if (isCastling) {
+        auto rank = dest.y;
+        auto origFile = dest.x == 2 ? 0 : 7;
+        auto newFile = dest.x == 2 ? 3 : 5;
+        *next.board.getSquare(MCoord(origFile, rank)) = Square.empty;
+        *next.board.getSquare(MCoord(newFile, rank)) = Square(state.turn, Piece.rook);
+    }
     next.enPassant = MCoord.invalid;
     if (isPawn && abs(dest.y - source.y) > 1) {
         next.enPassant = MCoord(dest.x, (dest.y + source.y) / 2);
@@ -118,6 +127,15 @@ unittest {
     result = state.performMove(MCoord(7, 6), MCoord(7, 7));
     assert(*result.state.board.getSquare(7, 7) == Square(Player.white, Piece.queen));
     assert(result.move.toString() == "h7h8q");
+    // Castling
+    state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
+    result = state.performMove("e1g1".parseMove);
+    assert(*result.state.board.getSquare(6, 0) == Square(Player.white, Piece.king));
+    assert(*result.state.board.getSquare(5, 0) == Square(Player.white, Piece.rook));
+    state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
+    result = state.performMove("e1c1".parseMove);
+    assert(*result.state.board.getSquare(2, 0) == Square(Player.white, Piece.king));
+    assert(*result.state.board.getSquare(3, 0) == Square(Player.white, Piece.rook));
 }
 
 pragma(inline, true)
@@ -140,7 +158,7 @@ bool canTake(const ref GameState state, MCoord source, MCoord dest) {
 
 pragma(inline, true)
 void addValidMovesForPawn(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
-    // TODO: Promotion? How does UCI even handle that
+    // TODO: Promotion to pieces that aren't queen
     static const int[2] DOUBLE_RANK = [1, 6];
     static const int[2] FORWARD_DIR = [1, -1];
     auto currentTurn = state.turn;
