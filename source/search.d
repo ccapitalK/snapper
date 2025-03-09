@@ -2,6 +2,7 @@ module chess_engine.search;
 
 import core.atomic;
 import std.algorithm;
+import std.datetime;
 import std.exception;
 import std.logger;
 import std.math : abs;
@@ -22,7 +23,9 @@ struct SearchContext {
     Move[] currentBestVariation;
     // Transposition table
     bool[const(GameState)] seen;
-    shared bool isStopped = false;
+    SysTime endTime;
+    size_t numEvals = 1;
+    size_t iterationsPerTimeoutCheck = size_t.max;
 }
 
 struct SearchFrame {
@@ -89,9 +92,12 @@ private SearchNode pickBestMoveInner(
     SearchContext* context,
     int depth,
 ) {
-    if (context.isStopped.atomicLoad() == true) {
-        throw new StopException();
+    if (context.numEvals % context.iterationsPerTimeoutCheck == 0) {
+        if (Clock.currTime > context.endTime) {
+            throw new StopException();
+        }
     }
+    ++context.numEvals;
     if (source in context.seen) {
         return null;
     }
@@ -200,6 +206,7 @@ MoveDest pickBestMoveIterativeDeepening(
     MoveDest move;
     bool hasMove = false;
     SearchFrame frame;
+    context.iterationsPerTimeoutCheck = 20_000;
     try {
         // We aren't ever going above 15
         foreach (depth; startNumIterations .. 15) {

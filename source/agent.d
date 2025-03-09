@@ -4,9 +4,9 @@ import core.atomic;
 import core.thread;
 import core.time;
 import std.algorithm;
+import std.datetime;
 import std.exception;
 import std.logger;
-import std.parallelism;
 import std.string : strip;
 
 import chess_engine.repr;
@@ -67,8 +67,6 @@ unittest {
 
 class ChessAgent {
     GameState currentBoard;
-    // FIXME: For some reason, sleep always overshoots by exactly 400msecs, so we cut down
-    static const Duration DEFAULT_DURATION = 2.seconds + 600.msecs;
 
     void handleUciPositionCommand(string uciCommand) {
         currentBoard = uciCommand.readUCIPosition;
@@ -77,17 +75,8 @@ class ChessAgent {
     }
 
     string bestMove(string opts, Duration thinkTime = 3.seconds) {
-        string encoded = currentBoard.toFen();
         auto context = new SearchContext;
-        auto searchTask = task(&getBestMove, context, encoded);
-        searchTask.executeInNewThread();
-        Thread.sleep(thinkTime);
-        context.isStopped.atomicStore(true);
-        return searchTask.yieldForce;
+        context.endTime = Clock.currTime + thinkTime;
+        return currentBoard.pickBestMoveIterativeDeepening(context).move.toString;
     }
-}
-
-string getBestMove(SearchContext* context, immutable string fenBoard) {
-    auto board = fenBoard.parseFen;
-    return board.pickBestMoveIterativeDeepening(context).move.toString;
 }
