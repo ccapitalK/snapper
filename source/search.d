@@ -17,23 +17,41 @@ class StopException : Throwable {
 
 const static float INFINITY = 1. / 0.;
 
+// TODO: Clean this whole module up
 struct SearchContext {
+    Move[] currentBestVariation;
     shared bool isStopped = false;
+    // TODO: transposition table
 }
 
-struct AlphaBeta {
+struct SearchFrame {
     // By convention we assume optimizing player is white, pessimizing is black
     // Lower bound for how good a position white can force for itself
     float alpha = -1. / 0.;
     // Lower bound for how good a position black can force for itself
     float beta = 1. / 0.;
+    const(Move)[] principalSubchain;
+
+    bool hasPrincipalChild() const nothrow => principalSubchain.length > 0;
+    Move nextMoveInPrincipal() const nothrow => hasPrincipalChild
+        ? principalSubchain[0] : Move.invalid;
+
+    SearchFrame lower(Move move) const nothrow {
+        auto rest = move == nextMoveInPrincipal ? principalSubchain[1 .. $] : [];
+        return SearchFrame(alpha, beta, rest);
+    }
 }
 
-static int numFiltered = 0;
-
-struct SearchNode {
+class SearchNode {
     MoveDest move;
     float depthEval = 0.0;
+    SearchNode principal;
+
+    this(MoveDest move, float depthEval, SearchNode principal) {
+        this.move = move;
+        this.depthEval = depthEval;
+        this.principal = principal;
+    }
 }
 
 // TODO: Is there a more idiomatic way of doing this?
@@ -41,22 +59,24 @@ struct SearchNode {
 struct SortOrder {
     ubyte[256] inds;
     MoveDest[] vals;
+    Move principal;
 
-    this(MoveDest[] vals, int mult) {
+    this(MoveDest[] vals, int mult, Move principal) {
         enforce(vals.length <= 256);
         this.vals = vals;
+        this.principal = principal;
         foreach (i; 0 .. vals.length) {
             inds[i] = cast(ubyte) i;
         }
-        inds[0 .. vals.length].sort!((i, j) => vals[i].eval * mult > vals[j].eval * mult);
+        inds[0 .. vals.length].sort!((i, j) => vals[i].move == principal || vals[i].eval * mult > vals[j].eval * mult);
     }
 
     auto range() const => inds[0 .. vals.length].map!(i => &vals[i]);
 }
 
-private Nullable!SearchNode pickBestMoveInner(
+private SearchNode pickBestMoveInner(
     const ref GameState source,
-    AlphaBeta ab,
+    SearchFrame frame,
     SearchContext* context,
     int depth,
 ) {
@@ -66,67 +86,75 @@ private Nullable!SearchNode pickBestMoveInner(
     auto isBlack = source.turn == Player.black;
     int multForPlayer = isBlack ? -1 : 1;
     MoveDest[] children = source.validMoves;
-    auto sortOrder = SortOrder(children, multForPlayer);
+    auto sortOrder = SortOrder(children, multForPlayer, frame.nextMoveInPrincipal);
     const(MoveDest)* best = null;
+    SearchNode bestNode = null;
     float bestScore = -INFINITY;
     foreach (const child; sortOrder.range) {
-        bool shouldBreak = false;
+        SearchNode childNode;
         double score = child.eval;
         // FIXME: We should be checking if both kings are present,
         // as a quick hack we are only checking if a king is gone (+100k)
         bool isTerminal = abs(score) > 10_000;
         if (depth > 0) {
             if (isTerminal) {
+                // Don't recurse if a king is gone, you can't trade a king for a king
                 score *= depth; // Favour later defeat and earlier checkmate
             } else {
-                auto cont = pickBestMoveInner(child.state, ab, context, depth - 1);
-                if (cont.isNull) {
+                auto cont = pickBestMoveInner(child.state, frame.lower(child.move), context, depth - 1);
+                if (cont is null) {
                     continue;
                 }
-                score = cont.get.depthEval;
+                score = cont.depthEval;
+                childNode = cont;
             }
-        }
-        if (isBlack) {
-            // Minimizing
-            if (score < ab.alpha) {
-                // Opponent won't permit this
-                shouldBreak = true;
-            }
-            ab.beta = min(ab.beta, score);
-        } else {
-            // Maximizing
-            if (score > ab.beta) {
-                // Opponent won't permit this
-                shouldBreak = true;
-            }
-            ab.alpha = max(ab.alpha, score);
         }
         float scoreForPlayer = score * multForPlayer;
         if (scoreForPlayer > bestScore) {
             bestScore = scoreForPlayer;
             best = child;
+            bestNode = childNode;
         }
-        if (shouldBreak) {
-            break;
+        if (isBlack) {
+            // Minimizing
+            if (score < frame.alpha) {
+                // Opponent won't permit this
+                break;
+            }
+            frame.beta = min(frame.beta, score);
+        } else {
+            // Maximizing
+            if (score > frame.beta) {
+                // Opponent won't permit this
+                break;
+            }
+            frame.alpha = max(frame.alpha, score);
         }
     }
     if (best == null) {
-        return Nullable!SearchNode();
+        return null;
     }
-    auto node = SearchNode(*best, bestScore * multForPlayer);
-    return node.nullable;
+    return new SearchNode(*best, bestScore * multForPlayer, bestNode);
 }
 
-MoveDest pickBestMove(const ref GameState source, int depth = 6, SearchContext* context = null) {
+MoveDest pickBestMove(
+    const ref GameState source,
+    int depth = 6,
+    SearchFrame frame = SearchFrame(),
+    SearchContext* context = null,
+) {
     SearchContext empty;
     if (context == null) {
         context = &empty;
     }
-    AlphaBeta alphaBeta;
     auto startEvals = numEvals;
-    auto bestMove = source.pickBestMoveInner(alphaBeta, context, depth).get;
+    auto bestMove = source.pickBestMoveInner(frame, context, depth);
     infof("Evaluated %d positions for depth %d search", numEvals - startEvals, depth);
     infof("Best move: %s", bestMove);
+    context.currentBestVariation = [];
+    for (SearchNode node = bestMove; node !is null; node = node.principal) {
+        context.currentBestVariation ~= node.move.move;
+    }
     return bestMove.move;
 }
 
@@ -158,12 +186,14 @@ MoveDest pickBestMoveIterativeDeepening(
 ) {
     MoveDest move;
     bool hasMove = false;
+    SearchFrame frame;
     try {
         // We aren't ever going above 15
         foreach (depth; startNumIterations .. 15) {
-            MoveDest found = source.pickBestMove(depth, context);
+            MoveDest found = source.pickBestMove(depth, frame, context);
             move = found;
             hasMove = true;
+            frame.principalSubchain = context.currentBestVariation;
         }
     } catch (StopException) {
         info("Interrupted!");

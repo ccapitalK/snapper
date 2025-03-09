@@ -80,9 +80,9 @@ void runHeavyTests() {
     ]);
 
     // Difficult, re-enable some time in the future
-    // tests ~= HeavyTest("5rk1/ppR2ppp/3N1n2/4p3/3p4/1Q1P2Pq/PP2PP1P/6K1 b - - 1 1", [
-    //     "f6g4", "b3f7", "f8f7", "c7c8", "f7f8", "c8f8", "g8f8", "d6b7", "h3h2"
-    // ], 1.seconds);
+    tests ~= HeavyTest("5rk1/ppR2ppp/3N1n2/4p3/3p4/1Q1P2Pq/PP2PP1P/6K1 b - - 1 1", [
+        "f6g4", "b3f7", "f8f7", "c7c8", "f7f8", "c8f8", "g8f8", "d6b7", "h3h2"
+    ], 1.seconds);
 
     tests ~= HeavyTest("5rk1/p5p1/1p1N2Q1/3qp3/8/8/P5RP/7K b - - 1 36", ["f8f1"]);
     tests ~= HeavyTest("2kr1b1r/ppp4q/3p1p2/1P1PpPp1/4B1p1/P2P2P1/5P2/R1BQ1RK1 b - - 2 19", [
@@ -90,7 +90,7 @@ void runHeavyTests() {
     ]);
     tests ~= HeavyTest("r1bqr1k1/1pppnp1p/p1n3p1/4p3/2B1P3/P2P1Q2/1PP1NPPP/R3K2R w KQ - 0 12", [
         "f3f7", "g8h8", "f7f6"
-    ]);
+    ], 300.msecs);
     tests ~= HeavyTest("3rk2r/p3bp1p/p3p1pB/2p1P1N1/8/8/PPPR1PbP/1K1R4 w - - 0 17", [
         "d2d8", "e7d8", "d1d8", "e8d8", "g5f7"
     ], 1.seconds);

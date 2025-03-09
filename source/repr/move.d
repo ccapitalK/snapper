@@ -17,6 +17,8 @@ struct Move {
     MCoord source;
     MCoord dest;
     Piece promotion = Piece.empty;
+
+    static const invalid = Move(MCoord.invalid, MCoord.invalid);
 }
 
 Move parseMove(string moveStr) {
