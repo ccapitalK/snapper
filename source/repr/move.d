@@ -65,8 +65,8 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     GameState next = state;
     auto sourceSquare = next.board.getSquare(source);
     auto destSquare = next.board.getSquare(dest);
-    assert(!sourceSquare.isEmpty && sourceSquare.getPlayer == state.turn);
-    assert(destSquare.isEmpty || destSquare.getPlayer != state.turn);
+    enforce(!sourceSquare.isEmpty && sourceSquare.getPlayer == state.turn);
+    enforce(destSquare.isEmpty || destSquare.getPlayer != state.turn);
     bool isPawn = sourceSquare.getPiece == Piece.pawn;
     bool isCapture = !destSquare.isEmpty;
     *destSquare = *sourceSquare;
