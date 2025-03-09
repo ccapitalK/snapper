@@ -2,15 +2,15 @@
 
 ## Getting started
 
-- [x] Read a move, pick a random (simple) move, write a move
-- [x] Enumerate legal moves
-- [x] Basic board repr
+- [X] Read a move, pick a random (simple) move, write a move
+- [X] Enumerate legal moves
+- [X] Basic board repr
 - [X] Pick best move that is legal from 2-deep search
 - [X] Tune tree search, set stopping time
 
 ## Interface
 
-- [x] Run in specified time limit
+- [X] Run in specified time limit
 
 ## Board representation
 
@@ -25,5 +25,5 @@
 - [X] Iterative Deepening
 - [ ] Quiescence
 - [ ] Transposition tables
-- [ ] Reuse the principle variation when deepening
+- [X] Reuse the principle variation when deepening
 - [ ] Cuda tree search?

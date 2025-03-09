@@ -50,7 +50,7 @@ class ChessEngine {
         performHandshake();
         while (true) {
             auto command = readCommand();
-            if (pipeClosed) {
+            if (pipeClosed || command.startsWith("quit")) {
                 break;
             }
             if (command.startsWith("position")) {
