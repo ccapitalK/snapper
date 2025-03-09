@@ -175,6 +175,7 @@ float leafEval(GameState state) {
         }
         return arr;
     }
+
     static const auto LUTK = genLookup(true);
     static const auto LUTN = genLookup(false);
     foreach (i; 0 .. 8 * 8) {

@@ -45,8 +45,8 @@ string toString(MCoord m) {
 MCoord parseCoord(string coordString) {
     enforce(coordString.length == 2);
     auto coord = MCoord(
-        cast(ubyte) (coordString[0] - 'a'),
-        cast(ubyte) (coordString[1] - '1'),
+        cast(ubyte)(coordString[0] - 'a'),
+        cast(ubyte)(coordString[1] - '1'),
     );
     enforce(coord.isInBounds);
     return coord;

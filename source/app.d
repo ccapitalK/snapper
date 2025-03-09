@@ -15,7 +15,7 @@ class ChessEngine {
     string lastCommand;
 
     this() {
-         this.agent = new ChessAgent();
+        this.agent = new ChessAgent();
     }
 
     string readCommand() {
