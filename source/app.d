@@ -91,7 +91,7 @@ void runDiagnostic(string[] args) {
 }
 
 void main(string[] args) {
-    sharedLog = cast(shared) new FileLogger("run.log", LogLevel.info);
+    sharedLog = cast(shared) new FileLogger("/tmp/engine_run.log", LogLevel.info);
     if (args.length > 1) {
         runDiagnostic(args);
         return;
