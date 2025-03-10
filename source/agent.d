@@ -72,7 +72,8 @@ class ChessAgent {
     OpeningTable openingTable;
     Mt19937 rnd;
 
-    this(string openingTableData = null) {
+    this(string openingTableData = null, uint seed = unpredictableSeed) {
+        this.rnd = Mt19937(seed);
         if (openingTableData) {
             this.openingTable = makeOpeningTable(openingTableData);
         }
