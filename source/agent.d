@@ -7,8 +7,10 @@ import std.algorithm;
 import std.datetime;
 import std.exception;
 import std.logger;
+import std.random;
 import std.string : strip;
 
+import chess_engine.opening_table;
 import chess_engine.repr;
 import chess_engine.search;
 
@@ -67,6 +69,14 @@ unittest {
 
 class ChessAgent {
     GameState currentBoard;
+    OpeningTable openingTable;
+    Mt19937 rnd;
+
+    this(string openingTableData = null) {
+        if (openingTableData) {
+            this.openingTable = makeOpeningTable(openingTableData);
+        }
+    }
 
     void handleUciPositionCommand(string uciCommand) {
         currentBoard = uciCommand.readUCIPosition;
@@ -74,7 +84,32 @@ class ChessAgent {
         info("\n" ~ currentBoard.board.getAsciiArtRepr);
     }
 
+    private string tryTableMove() {
+        auto tableMoves = openingTable.lookupPosition(currentBoard);
+        if (tableMoves.length == 0) {
+            return null;
+        }
+        auto rouletteTotal = sum(tableMoves[].map!(a => a[1]));
+        auto roulette = uniform(0, rouletteTotal, rnd);
+        size_t sum = 0;
+        foreach (move; tableMoves) {
+            sum += move[1];
+            if (sum < roulette) {
+                continue;
+            }
+            auto chosen = move[0];
+            info("Chose table move ", chosen.toString);
+            return chosen.toString;
+        }
+        enforce(false, "Unreachable code");
+        return null;
+    }
+
     string bestMove(string opts, Duration thinkTime = 3.seconds) {
+        auto tableMove = tryTableMove();
+        if (tableMove != null) {
+            return tableMove;
+        }
         auto context = new SearchContext;
         context.endTime = Clock.currTime + thinkTime;
         return currentBoard.pickBestMoveIterativeDeepening(context).move.toString;

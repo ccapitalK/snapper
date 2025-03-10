@@ -9,13 +9,15 @@ import chess_engine.puzzle;
 import chess_engine.repr;
 import chess_engine.search;
 
+const static string MOVES_DB_STRING = import("movesdb.txt");
+
 class ChessEngine {
     ChessAgent agent;
     bool pipeClosed = false;
     string lastCommand;
 
     this() {
-        this.agent = new ChessAgent();
+        this.agent = new ChessAgent(MOVES_DB_STRING);
     }
 
     string readCommand() {
@@ -106,6 +108,7 @@ void main(string[] args) {
     }
     // TODO: Increase log level to trace with a cmdline flag
     try {
+        info("Starting engine");
         auto engine = new ChessEngine();
         engine.run();
     } catch (Throwable e) {
