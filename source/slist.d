@@ -1,4 +1,4 @@
-module chess_engine.slist;
+module piranha.slist;
 
 import std.exception;
 

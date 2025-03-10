@@ -1,4 +1,4 @@
-module chess_engine.puzzle;
+module piranha.puzzle;
 
 import std.algorithm;
 import std.datetime;
@@ -8,9 +8,9 @@ import std.parallelism;
 import std.range;
 import std.random;
 import std.stdio;
-import chess_engine.agent;
-import chess_engine.repr;
-import chess_engine.search;
+import piranha.agent;
+import piranha.repr;
+import piranha.search;
 
 struct HeavyTest {
     string origFen;

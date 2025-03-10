@@ -1,11 +1,11 @@
-module chess_engine.opening_table;
+module piranha.opening_table;
 
 import std.array;
 import std.algorithm;
 import std.logger;
 import std.typecons;
-import chess_engine.agent;
-import chess_engine.repr;
+import piranha.agent;
+import piranha.repr;
 
 struct OpeningTable {
     private uint[Move][GameState] validMoves;

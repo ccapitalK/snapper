@@ -1,4 +1,4 @@
-module chess_engine.agent;
+module piranha.agent;
 
 import core.atomic;
 import core.thread;
@@ -10,9 +10,9 @@ import std.logger;
 import std.random;
 import std.string : strip;
 
-import chess_engine.opening_table;
-import chess_engine.repr;
-import chess_engine.search;
+import piranha.opening_table;
+import piranha.repr;
+import piranha.search;
 
 const static string START_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 

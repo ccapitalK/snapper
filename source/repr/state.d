@@ -1,4 +1,4 @@
-module chess_engine.repr.state;
+module piranha.repr.state;
 
 import std.algorithm;
 import std.array;
@@ -8,7 +8,7 @@ import std.exception;
 import std.math : abs;
 import std.range;
 import std.string;
-import chess_engine.repr.board;
+import piranha.repr.board;
 
 struct GameState {
     Board board;

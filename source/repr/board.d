@@ -1,4 +1,4 @@
-module chess_engine.repr.board;
+module piranha.repr.board;
 
 import std.algorithm;
 import std.ascii;

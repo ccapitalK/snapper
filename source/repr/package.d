@@ -1,5 +1,5 @@
-module chess_engine.repr;
+module piranha.repr;
 
-public import chess_engine.repr.board;
-public import chess_engine.repr.move;
-public import chess_engine.repr.state;
+public import piranha.repr.board;
+public import piranha.repr.move;
+public import piranha.repr.state;

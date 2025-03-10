@@ -1,13 +1,13 @@
-module chess_engine.app;
+module piranha.app;
 import std.algorithm;
 import std.exception;
 import std.logger;
 import std.stdio;
 
-import chess_engine.agent;
-import chess_engine.puzzle;
-import chess_engine.repr;
-import chess_engine.search;
+import piranha.agent;
+import piranha.puzzle;
+import piranha.repr;
+import piranha.search;
 
 const static string MOVES_DB_STRING = import("movesdb.txt");
 
@@ -70,7 +70,7 @@ class ChessEngine {
 
     void performHandshake() {
         enforce(expectCommand() == "uci", "Driver is not a UCI chess frontend");
-        sendCommand("id name Fax\n");
+        sendCommand("id name Piranha\n");
         sendCommand("id author ccapitalK\n");
         sendCommand("uciok\n");
         enforce(expectCommand() == "isready", "Unknown command in handshake");

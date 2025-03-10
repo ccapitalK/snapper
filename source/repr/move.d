@@ -1,4 +1,4 @@
-module chess_engine.repr.move;
+module piranha.repr.move;
 
 import std.algorithm;
 import std.array;
@@ -10,8 +10,8 @@ import std.math : abs;
 import std.traits;
 import std.typecons;
 
-import chess_engine.repr.board;
-import chess_engine.repr.state;
+import piranha.repr.board;
+import piranha.repr.state;
 
 struct Move {
     MCoord source;
@@ -41,8 +41,8 @@ string toString(Move m) {
     char[5] data;
     // BLEGH, modules don't allow the same symbol to be defined in
     // two spaces, even for different types?
-    data[0 .. 2] = chess_engine.repr.board.toString(m.source)[];
-    data[2 .. 4] = chess_engine.repr.board.toString(m.dest)[];
+    data[0 .. 2] = piranha.repr.board.toString(m.source)[];
+    data[2 .. 4] = piranha.repr.board.toString(m.dest)[];
     static foreach (v; pieceByFenName) {
         if (m.promotion == v[1]) {
             data[4] = v[0];

@@ -1,4 +1,4 @@
-module chess_engine.search;
+module piranha.search;
 
 import core.atomic;
 import std.algorithm;
@@ -8,7 +8,7 @@ import std.logger;
 import std.math : abs;
 import std.stdio;
 import std.typecons;
-import chess_engine.repr;
+import piranha.repr;
 
 class StopException : Throwable {
     this(string file = __FILE__, size_t line = __LINE__) {
@@ -93,7 +93,7 @@ private SearchNode pickBestMoveInner(
     int depth,
 ) {
     if (context.numEvals % context.iterationsPerTimeoutCheck == 0) {
-        if (Clock.currTime > context.endTime) {
+        if (Clock.currTime + 10.msecs > context.endTime) {
             throw new StopException();
         }
     }
