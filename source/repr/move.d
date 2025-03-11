@@ -10,6 +10,7 @@ import std.math : abs;
 import std.traits;
 import std.typecons;
 
+import snapper.stack_appender;
 import snapper.repr.board;
 import snapper.repr.state;
 
@@ -210,7 +211,8 @@ bool canTake(const ref GameState state, MCoord source, MCoord dest) {
 }
 
 pragma(inline, true)
-void addValidMovesForPawn(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
+void addValidMovesForPawn(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source)
+        if (isAppender!AppenderT) {
     // TODO: Promotion to pieces that aren't queen
     static const int[2] DOUBLE_RANK = [1, 6];
     static const int[2] FORWARD_DIR = [1, -1];
@@ -236,15 +238,9 @@ void addValidMovesForPawn(const ref GameState state, Appender!(MoveDest[])* buil
     }
 }
 
-unittest {
-    auto state = "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq - 0 1".parseFen;
-    assert(state.validMoves.length == 6);
-    state = "k7/8/8/5Pp1/8/8/8/K7 w - g6 0 1".parseFen;
-    assert(state.validMoves.length == 5);
-}
-
 pragma(inline, true)
-void addValidMovesForBishop(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
+void addValidMovesForBishop(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source)
+        if (isAppender!AppenderT) {
     foreach (xSign; SIGNS) {
         foreach (ySign; SIGNS) {
             foreach (step; 1 .. 8) {
@@ -265,7 +261,8 @@ void addValidMovesForBishop(const ref GameState state, Appender!(MoveDest[])* bu
 }
 
 pragma(inline, true)
-void addValidMovesForRook(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
+void addValidMovesForRook(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source)
+        if (isAppender!AppenderT) {
     foreach (dir; DIRS) {
         foreach (step; 1 .. 8) {
             auto dest = MCoord(
@@ -284,7 +281,8 @@ void addValidMovesForRook(const ref GameState state, Appender!(MoveDest[])* buil
 }
 
 pragma(inline, true)
-void addValidMovesForKnight(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
+private void addValidMovesForKnight(AppenderT)(const ref GameState state, AppenderT builder, MCoord source)
+        if (isAppender!AppenderT) {
     foreach (xSign; SIGNS) {
         foreach (ySign; SIGNS) {
             foreach (flip; 0 .. 2) {
@@ -303,7 +301,8 @@ void addValidMovesForKnight(const ref GameState state, Appender!(MoveDest[])* bu
 }
 
 pragma(inline, true)
-void addValidMovesForKing(const ref GameState state, Appender!(MoveDest[])* builder, MCoord source) {
+private void addValidMovesForKing(AppenderT)(const ref GameState state, AppenderT builder, MCoord source)
+        if (isAppender!AppenderT) {
     // TODO: Castle
     foreach (dx; atMostOne) {
         foreach (dy; atMostOne) {
@@ -318,9 +317,8 @@ void addValidMovesForKing(const ref GameState state, Appender!(MoveDest[])* buil
     }
 }
 
-MoveDest[] validMoves(const ref GameState parent) {
-    // TODO: Pass in arena allocator
-    auto builder = appender(new MoveDest[0]);
+MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT builder)
+        if (isAppender!AppenderT) {
     foreach (i; 0 .. 64) {
         auto file = i & 7;
         auto rank = i >> 3;
@@ -357,4 +355,18 @@ MoveDest[] validMoves(const ref GameState parent) {
     }
     auto moves = builder.data;
     return moves;
+}
+
+MoveDest[] validMoves(AppenderT = Appender!(MoveDest[]))(
+    const ref GameState parent,
+    AppenderT builder = appender(new MoveDest[0]),
+) if (isAppender!AppenderT) {
+    return validMovesInner!AppenderT(parent, builder);
+}
+
+unittest {
+    auto state = "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq - 0 1".parseFen;
+    assert(state.validMoves.length == 6);
+    state = "k7/8/8/5Pp1/8/8/8/K7 w - g6 0 1".parseFen;
+    assert(state.validMoves.length == 5);
 }
