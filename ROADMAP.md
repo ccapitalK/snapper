@@ -19,9 +19,9 @@
 
 - [ ] (Un)Marshal abstract board state to a specific optimized representation
 - [ ] Learn how to perform castles
-- [ ] StackAllocator for move list generation
-- [ ] Switch to UTHash
-- [ ] Rewrite search to use custom allocators, avoid GC
+- [X] StackAllocator for move list generation
+- [X] Switch to UTHash (Abandoned, seems slower than gc / using table)
+- [X] Rewrite search to use custom allocators, avoid GC
 - [ ] Bitboard
 - [ ] Magic Bitboard
 - [ ] Optimize move generation

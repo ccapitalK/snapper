@@ -319,7 +319,7 @@ MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT buil
         auto square = *parent.board.getSquare(file, rank);
         auto piece = square.getPiece;
         auto owner = square.getPlayer;
-        if (piece == Piece.empty || owner != parent.turn) {
+        if (square == Square.empty || owner != parent.turn) {
             continue;
         }
         auto piecePos = MCoord(cast(ubyte) file, cast(ubyte) rank);
