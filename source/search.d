@@ -168,9 +168,9 @@ MoveDest pickBestMove(
     SearchFrame frame = SearchFrame(),
     SearchContext* context = null,
 ) {
-    SearchContext empty;
+    bool isLocalContext = false;
     if (context == null) {
-        context = &empty;
+        context = new SearchContext;
     }
     auto startEvals = numEvals;
     auto bestMove = source.pickBestMoveInner(frame, context, depth);
@@ -179,6 +179,9 @@ MoveDest pickBestMove(
     context.currentBestVariation = [];
     for (SearchNode node = bestMove; node !is null; node = node.principal) {
         context.currentBestVariation ~= node.move.move;
+    }
+    if (isLocalContext) {
+        destroy(context);
     }
     return bestMove.move;
 }
