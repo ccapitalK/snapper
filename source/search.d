@@ -9,6 +9,7 @@ import std.math : abs;
 import std.stdio;
 import std.typecons;
 import snapper.repr;
+import snapper.stack_appender;
 
 class StopException : Throwable {
     this(string file = __FILE__, size_t line = __LINE__) {
@@ -24,6 +25,7 @@ struct SearchContext {
     // Transposition table
     bool[const(GameState)] seen;
     SysTime endTime;
+    StackAppender!MoveDest appender = StackAppender!MoveDest(1024);
     size_t numEvals = 1;
     size_t iterationsPerTimeoutCheck = size_t.max;
 }
@@ -102,9 +104,13 @@ private SearchNode pickBestMoveInner(
         return null;
     }
     context.seen[source] = true;
+
+    auto appender = &context.appender;
+    auto guard = StackAppenderResetGuard!MoveDest(appender);
+    MoveDest[] children = validMoves(source, appender);
+
     auto isBlack = source.turn == Player.black;
     int multForPlayer = isBlack ? -1 : 1;
-    MoveDest[] children = source.validMoves;
     auto sortOrder = SortOrder(children, multForPlayer, frame.nextMoveInPrincipal);
     const(MoveDest)* best = null;
     SearchNode bestNode = null;

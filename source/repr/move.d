@@ -211,8 +211,7 @@ bool canTake(const ref GameState state, MCoord source, MCoord dest) {
 }
 
 pragma(inline, true)
-void addValidMovesForPawn(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source)
-        if (isAppender!AppenderT) {
+void addValidMovesForPawn(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source) {
     // TODO: Promotion to pieces that aren't queen
     static const int[2] DOUBLE_RANK = [1, 6];
     static const int[2] FORWARD_DIR = [1, -1];
@@ -239,8 +238,7 @@ void addValidMovesForPawn(AppenderT)(const ref GameState state, AppenderT* build
 }
 
 pragma(inline, true)
-void addValidMovesForBishop(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source)
-        if (isAppender!AppenderT) {
+void addValidMovesForBishop(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source) {
     foreach (xSign; SIGNS) {
         foreach (ySign; SIGNS) {
             foreach (step; 1 .. 8) {
@@ -261,8 +259,7 @@ void addValidMovesForBishop(AppenderT)(const ref GameState state, AppenderT* bui
 }
 
 pragma(inline, true)
-void addValidMovesForRook(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source)
-        if (isAppender!AppenderT) {
+void addValidMovesForRook(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source) {
     foreach (dir; DIRS) {
         foreach (step; 1 .. 8) {
             auto dest = MCoord(
@@ -281,8 +278,7 @@ void addValidMovesForRook(AppenderT)(const ref GameState state, AppenderT* build
 }
 
 pragma(inline, true)
-private void addValidMovesForKnight(AppenderT)(const ref GameState state, AppenderT builder, MCoord source)
-        if (isAppender!AppenderT) {
+private void addValidMovesForKnight(AppenderT)(const ref GameState state, AppenderT builder, MCoord source) {
     foreach (xSign; SIGNS) {
         foreach (ySign; SIGNS) {
             foreach (flip; 0 .. 2) {
@@ -301,8 +297,7 @@ private void addValidMovesForKnight(AppenderT)(const ref GameState state, Append
 }
 
 pragma(inline, true)
-private void addValidMovesForKing(AppenderT)(const ref GameState state, AppenderT builder, MCoord source)
-        if (isAppender!AppenderT) {
+private void addValidMovesForKing(AppenderT)(const ref GameState state, AppenderT builder, MCoord source) {
     // TODO: Castle
     foreach (dx; atMostOne) {
         foreach (dy; atMostOne) {
@@ -317,8 +312,7 @@ private void addValidMovesForKing(AppenderT)(const ref GameState state, Appender
     }
 }
 
-MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT builder)
-        if (isAppender!AppenderT) {
+MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT builder) {
     foreach (i; 0 .. 64) {
         auto file = i & 7;
         auto rank = i >> 3;
@@ -331,23 +325,23 @@ MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT buil
         auto piecePos = MCoord(cast(ubyte) file, cast(ubyte) rank);
         switch (piece) {
         case Piece.pawn:
-            addValidMovesForPawn(parent, &builder, piecePos);
+            addValidMovesForPawn(parent, builder, piecePos);
             break;
         case Piece.bishop:
-            addValidMovesForBishop(parent, &builder, piecePos);
+            addValidMovesForBishop(parent, builder, piecePos);
             break;
         case Piece.rook:
-            addValidMovesForRook(parent, &builder, piecePos);
+            addValidMovesForRook(parent, builder, piecePos);
             break;
         case Piece.knight:
-            addValidMovesForKnight(parent, &builder, piecePos);
+            addValidMovesForKnight(parent, builder, piecePos);
             break;
         case Piece.queen:
-            addValidMovesForBishop(parent, &builder, piecePos);
-            addValidMovesForRook(parent, &builder, piecePos);
+            addValidMovesForBishop(parent, builder, piecePos);
+            addValidMovesForRook(parent, builder, piecePos);
             break;
         case Piece.king:
-            addValidMovesForKing(parent, &builder, piecePos);
+            addValidMovesForKing(parent, builder, piecePos);
             break;
         default:
             assert(0);
@@ -357,11 +351,17 @@ MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT buil
     return moves;
 }
 
-MoveDest[] validMoves(AppenderT = Appender!(MoveDest[]))(
+// FIXME: Compile times went up from 600ms to 8s when I added the stack appender path.
+MoveDest[] validMoves(
     const ref GameState parent,
-    AppenderT builder = appender(new MoveDest[0]),
-) if (isAppender!AppenderT) {
-    return validMovesInner!AppenderT(parent, builder);
+    StackAppender!MoveDest* builder,
+) {
+    return validMovesInner!(typeof(builder))(parent, builder);
+}
+
+MoveDest[] validMoves(const ref GameState parent) {
+    Appender!(MoveDest[]) builder;
+    return validMovesInner(parent, &builder);
 }
 
 unittest {
