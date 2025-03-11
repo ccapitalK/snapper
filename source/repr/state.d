@@ -1,4 +1,4 @@
-module piranha.repr.state;
+module snapper.repr.state;
 
 import std.algorithm;
 import std.array;
@@ -8,7 +8,7 @@ import std.exception;
 import std.math : abs;
 import std.range;
 import std.string;
-import piranha.repr.board;
+import snapper.repr.board;
 
 struct GameState {
     Board board;

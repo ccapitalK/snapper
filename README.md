@@ -1,4 +1,4 @@
-# Piranha Chess Engine
+# Snapper Chess Engine
 
 This is a chess engine written in D. It uses the UCI protocol, and should be
 compatible with any UCI chess runner (though it's only been tested against KDE
@@ -11,8 +11,8 @@ This engine runs best when compiled with ldc in release mode.
 
 ```
 dub build -b release --compiler=ldc
-./piranha heavyTest
+./snapper heavyTest
 ```
 
-The chess engine should now be built as `./piranha`. You can use it using the uci protocol, no command line arguments
+The chess engine should now be built as `./snapper`. You can use it using the uci protocol, no command line arguments
 are necessary.

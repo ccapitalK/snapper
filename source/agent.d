@@ -1,4 +1,4 @@
-module piranha.agent;
+module snapper.agent;
 
 import core.atomic;
 import core.thread;
@@ -10,9 +10,9 @@ import std.logger;
 import std.random;
 import std.string : strip;
 
-import piranha.opening_table;
-import piranha.repr;
-import piranha.search;
+import snapper.opening_table;
+import snapper.repr;
+import snapper.search;
 
 const static string START_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 

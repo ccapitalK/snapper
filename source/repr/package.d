@@ -1,5 +1,5 @@
-module piranha.repr;
+module snapper.repr;
 
-public import piranha.repr.board;
-public import piranha.repr.move;
-public import piranha.repr.state;
+public import snapper.repr.board;
+public import snapper.repr.move;
+public import snapper.repr.state;

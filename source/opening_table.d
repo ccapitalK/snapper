@@ -1,11 +1,11 @@
-module piranha.opening_table;
+module snapper.opening_table;
 
 import std.array;
 import std.algorithm;
 import std.logger;
 import std.typecons;
-import piranha.agent;
-import piranha.repr;
+import snapper.agent;
+import snapper.repr;
 
 struct OpeningTable {
     private uint[Move][GameState] validMoves;

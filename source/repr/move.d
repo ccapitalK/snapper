@@ -1,4 +1,4 @@
-module piranha.repr.move;
+module snapper.repr.move;
 
 import std.algorithm;
 import std.array;
@@ -10,8 +10,8 @@ import std.math : abs;
 import std.traits;
 import std.typecons;
 
-import piranha.repr.board;
-import piranha.repr.state;
+import snapper.repr.board;
+import snapper.repr.state;
 
 struct Move {
     MCoord source;
@@ -41,8 +41,8 @@ string toString(Move m) {
     char[5] data;
     // BLEGH, modules don't allow the same symbol to be defined in
     // two spaces, even for different types?
-    data[0 .. 2] = piranha.repr.board.toString(m.source)[];
-    data[2 .. 4] = piranha.repr.board.toString(m.dest)[];
+    data[0 .. 2] = snapper.repr.board.toString(m.source)[];
+    data[2 .. 4] = snapper.repr.board.toString(m.dest)[];
     static foreach (v; pieceByFenName) {
         if (m.promotion == v[1]) {
             data[4] = v[0];

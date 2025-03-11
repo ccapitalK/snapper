@@ -1,4 +1,4 @@
-module piranha.repr.board;
+module snapper.repr.board;
 
 import std.algorithm;
 import std.ascii;

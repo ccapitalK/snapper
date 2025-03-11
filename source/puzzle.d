@@ -1,4 +1,4 @@
-module piranha.puzzle;
+module snapper.puzzle;
 
 import std.algorithm;
 import std.datetime;
@@ -8,9 +8,9 @@ import std.parallelism;
 import std.range;
 import std.random;
 import std.stdio;
-import piranha.agent;
-import piranha.repr;
-import piranha.search;
+import snapper.agent;
+import snapper.repr;
+import snapper.search;
 
 struct HeavyTest {
     string origFen;

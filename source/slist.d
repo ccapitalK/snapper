@@ -1,4 +1,4 @@
-module piranha.slist;
+module snapper.slist;
 
 import std.exception;
 

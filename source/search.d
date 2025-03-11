@@ -1,4 +1,4 @@
-module piranha.search;
+module snapper.search;
 
 import core.atomic;
 import std.algorithm;
@@ -8,7 +8,7 @@ import std.logger;
 import std.math : abs;
 import std.stdio;
 import std.typecons;
-import piranha.repr;
+import snapper.repr;
 
 class StopException : Throwable {
     this(string file = __FILE__, size_t line = __LINE__) {
