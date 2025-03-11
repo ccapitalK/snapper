@@ -8,6 +8,7 @@ import std.logger;
 import std.math : abs;
 import std.stdio;
 import std.typecons;
+import snapper.state_table;
 import snapper.repr;
 import snapper.stack_appender;
 
@@ -18,16 +19,35 @@ class StopException : Throwable {
 }
 
 const static float INFINITY = 1. / 0.;
+const static size_t GAMESTATE_TABLE_MEMORY_BUDGET = 1024 * 1024;
 
 // TODO: Clean this whole module up
 struct SearchContext {
     Move[] currentBestVariation;
     // Transposition table
-    bool[const(GameState)] seen;
+    GameStateTable seen;
     SysTime endTime;
-    StackAppender!MoveDest appender = StackAppender!MoveDest(1024);
+    StackAppender!MoveDest appender;
     size_t numEvals = 1;
     size_t iterationsPerTimeoutCheck = size_t.max;
+
+    void clear() {
+        seen = GameStateTable(GAMESTATE_TABLE_MEMORY_BUDGET);
+    }
+}
+
+SearchContext searchContext() {
+    return SearchContext(
+        seen: GameStateTable(GAMESTATE_TABLE_MEMORY_BUDGET),
+        appender: StackAppender!MoveDest(1024),
+    );
+}
+
+SearchContext *makeSearchContext() {
+    return new SearchContext(
+        seen: GameStateTable(GAMESTATE_TABLE_MEMORY_BUDGET),
+        appender: StackAppender!MoveDest(1024),
+    );
 }
 
 struct SearchFrame {
@@ -100,10 +120,9 @@ private SearchNode pickBestMoveInner(
         }
     }
     ++context.numEvals;
-    if (source in context.seen) {
+    if (context.seen.containsOrReplace(source)) {
         return null;
     }
-    context.seen[source] = true;
 
     auto appender = &context.appender;
     auto guard = StackAppenderResetGuard!MoveDest(appender);
@@ -170,7 +189,7 @@ MoveDest pickBestMove(
 ) {
     bool isLocalContext = false;
     if (context == null) {
-        context = new SearchContext;
+        context = makeSearchContext;
     }
     auto startEvals = numEvals;
     auto bestMove = source.pickBestMoveInner(frame, context, depth);
@@ -219,7 +238,7 @@ MoveDest pickBestMoveIterativeDeepening(
     try {
         // We aren't ever going above 15
         foreach (depth; startNumIterations .. 15) {
-            context.seen.clear();
+            context.clear();
             MoveDest found = source.pickBestMove(depth, frame, context);
             move = found;
             hasMove = true;

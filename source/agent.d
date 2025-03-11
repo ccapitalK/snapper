@@ -111,7 +111,7 @@ class ChessAgent {
         if (tableMove != null) {
             return tableMove;
         }
-        auto context = new SearchContext;
+        auto context = makeSearchContext();
         context.endTime = Clock.currTime + thinkTime;
         return currentBoard.pickBestMoveIterativeDeepening(context).move.toString;
     }

@@ -351,7 +351,9 @@ MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT buil
     return moves;
 }
 
-// FIXME: Compile times went up from 600ms to 8s when I added the stack appender path.
+// TODO: Compile times went up from 600ms to 8s when I did the stack appender change. It appears to be caused by
+// writing large array constructors inline in a struct, look at blame for when this message was introduced to see
+// what fixed the issue.
 MoveDest[] validMoves(
     const ref GameState parent,
     StackAppender!MoveDest* builder,

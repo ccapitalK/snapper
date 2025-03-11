@@ -58,7 +58,7 @@ struct StackAppenderResetGuard(T) {
     }
 }
 
-// static assert(isAppender!(StackAppender!int));
+static assert(isAppender!(StackAppender!int));
 static assert(isAppender!(StackAppender!int*));
 static assert(isAppender!(Appender!(int[])));
 static assert(isAppender!(Appender!(int[])));
