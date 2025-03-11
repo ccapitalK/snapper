@@ -8,6 +8,7 @@ import snapper.agent;
 import snapper.puzzle;
 import snapper.repr;
 import snapper.search;
+import snapper.tools;
 
 const static string MOVES_DB_STRING = import("movesdb.txt");
 
@@ -78,32 +79,10 @@ class ChessEngine {
     }
 }
 
-void runDiagnostic(string[] args) {
-    if (args[1 .. $] == ["bench"]) {
-        writeln("Running benchmark");
-        auto initial = "4kb1r/p4ppp/4q3/8/8/1B6/PPP2PPP/2KR4 w - - 0 1".parseFen;
-        writeln(initial.board.getAsciiArtRepr);
-        writeln(initial.pickBestMove(8));
-        return;
-    }
-    if (args[1 .. $] == ["benchDeepen"]) {
-        writeln("Running deepening benchmark");
-        auto initialState = "4kb1r/p4ppp/4q3/8/8/1B6/PPP2PPP/2KR4 w - - 0 1";
-        auto agent = new ChessAgent;
-        agent.handleUciPositionCommand("position fen " ~ initialState);
-        info("Best move: ", agent.bestMove(""));
-        return;
-    }
-    if (args[1 .. $] == ["heavyTest"]) {
-        runHeavyTests();
-        return;
-    }
-}
-
 void main(string[] args) {
     sharedLog = cast(shared) new FileLogger("/tmp/engine_run.log", LogLevel.info);
     if (args.length > 1) {
-        runDiagnostic(args);
+        runTool(args);
         return;
     }
     // TODO: Increase log level to trace with a cmdline flag

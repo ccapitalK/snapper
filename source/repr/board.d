@@ -15,10 +15,7 @@ import std.typecons;
 
 static const int[2] SIGNS = [-1, 1];
 static const MCoord[4] DIRS = [
-    MCoord(0, 1),
-    MCoord(1, 0),
-    MCoord(0, -1),
-    MCoord(-1, 0),
+    MCoord(0, 1), MCoord(1, 0), MCoord(0, -1), MCoord(-1, 0),
 ];
 static auto atMostOne() => iota(-1, 2);
 
@@ -85,8 +82,7 @@ private int[16] genValuesArr() {
     return x;
 }
 
-align(1)
-struct Square {
+align(1) struct Square {
     private const static int[16] VALUES = genValuesArr();
     ubyte v;
 

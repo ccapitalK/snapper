@@ -39,4 +39,3 @@ struct SListPool(T) {
         first = index;
     }
 }
-

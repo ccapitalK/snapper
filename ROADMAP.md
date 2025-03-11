@@ -19,6 +19,8 @@
 
 - [ ] (Un)Marshal abstract board state to a specific optimized representation
 - [ ] Learn how to perform castles
+- [ ] StackAllocator for move list generation
+- [ ] Switch to UTHash
 - [ ] Rewrite search to use custom allocators, avoid GC
 - [ ] Bitboard
 - [ ] Magic Bitboard
@@ -37,5 +39,5 @@
 - [X] Reuse the principle variation when deepening
 - [ ] Quiescence
 - [ ] Better position evaluation
-- [ ] Opening table database
+- [X] Opening table database
 - [ ] Cuda tree search?
