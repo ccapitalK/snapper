@@ -8,7 +8,8 @@ import std.exception;
 import std.math : abs;
 import std.range;
 import std.string;
-import snapper.repr.board;
+
+import snapper.repr;
 
 struct GameState {
     Board board;
