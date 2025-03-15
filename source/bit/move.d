@@ -20,8 +20,8 @@ MCoord coordFromBit(ulong v) {
 
 ulong bitsWhere(alias predicate)() {
     ulong set;
-    foreach(y; 0 .. 8) {
-        foreach(x; 0 .. 8) {
+    foreach (y; 0 .. 8) {
+        foreach (x; 0 .. 8) {
             ulong v = 1UL << (x + 8 * y);
             if (predicate(x, y)) {
                 set |= v;
@@ -44,6 +44,8 @@ struct StaticTables {
     // Masks of positions that are the same row/column as the index
     ulong[8] row;
     ulong[8] column;
+    static const string[2] xDirs = ["left", "right"];
+    static const string[2] yDirs = ["down", "up"];
 }
 
 // Initialize the static tables
@@ -96,13 +98,21 @@ unittest {
 
 PositionMask fillDiagonal(PositionMask input) {
     ulong set;
-    input.iterateBits!((ulong v) {
-        auto pos = v.bitPos;
-        auto x = pos % 8;
-        auto y = pos / 8;
-        set |= STATIC_TABLES.diagBottomRight[x + y];
-        set |= STATIC_TABLES.diagTopRight[x + 7 - y];
-    });
+    if (input.numOccupied < 6) {
+        input.iterateBits!((ulong v) {
+            auto pos = v.bitPos;
+            auto x = pos % 8;
+            auto y = pos / 8;
+            set |= STATIC_TABLES.diagBottomRight[x + y];
+            set |= STATIC_TABLES.diagTopRight[x + 7 - y];
+        });
+    } else {
+        foreach (v; STATIC_TABLES.diagTopRight[].chain(STATIC_TABLES.diagBottomRight[])) {
+            if ((input.value & v) != 0) {
+                set |= v;
+            }
+        }
+    }
     return PositionMask(set);
 }
 
@@ -149,8 +159,6 @@ unittest {
 
 PositionMask getKnightMoves(PositionMask input) {
     ulong set;
-    static const string[2] xDirs = ["left", "right"];
-    static const string[2] yDirs = ["down", "up"];
     // For each of the 8 knight moves
     static foreach (sx; 0 .. 2) {
         static foreach (sy; 0 .. 2) {
@@ -163,8 +171,8 @@ PositionMask getKnightMoves(PositionMask input) {
                     const int dy = udy * SIGNS[sy];
                     // We want to ignore source positions that would go off the board when performing this
                     // move. Mask only the set bits in input that can perform this move.
-                    static const auto xMask = mixin("STATIC_TABLES." ~ xDirs[!sx])[sx ? 8 - udx : udx - 1];
-                    static const auto yMask = mixin("STATIC_TABLES." ~ yDirs[!sy])[sy ? 8 - udy : udy - 1];
+                    static const auto xMask = mixin("STATIC_TABLES." ~ STATIC_TABLES.xDirs[!sx])[sx ? 8 - udx: udx - 1];
+                    static const auto yMask = mixin("STATIC_TABLES." ~ STATIC_TABLES.yDirs[!sy])[sy ? 8 - udy: udy - 1];
                     // The final calculated shift left (can be negative) that this move is equivalent to
                     static const auto shift = dx + 8 * dy;
                     auto validSourcePositions = input.value & xMask & yMask;
@@ -185,12 +193,44 @@ unittest {
     assert(PositionMask(MCoord(0, 0)).getKnightMoves.numOccupied == 2);
     assert(PositionMask(MCoord(7, 0)).getKnightMoves.numOccupied == 2);
     assert(PositionMask(MCoord(7, 7)).getKnightMoves.numOccupied == 2);
-    PositionMask(MCoord(1, 1)).getKnightMoves;
-    PositionMask(MCoord(2, 2)).getKnightMoves;
     assert(PositionMask(MCoord(1, 1)).getKnightMoves.numOccupied == 4);
     assert(PositionMask(MCoord(1, 2)).getKnightMoves.numOccupied == 6);
     assert(PositionMask(MCoord(2, 2)).getKnightMoves.numOccupied == 8);
     assert(PositionMask(MCoord(5, 5)).getKnightMoves.numOccupied == 8);
     assert(PositionMask(MCoord(6, 5)).getKnightMoves.numOccupied == 6);
     assert(PositionMask(MCoord(2, 2)).getKnightMoves.value == 0x0000_000A_1100_110AUL);
+}
+
+PositionMask getAdjacent(PositionMask input) {
+    ulong set;
+    static foreach (dy; atMostOne) {
+        static foreach (dx; atMostOne) {
+            if (dx != 0 || dy != 0) {
+                static const auto sx = dx >= 0;
+                static const auto sy = dy >= 0;
+                static const auto xMask = mixin("STATIC_TABLES." ~ STATIC_TABLES.xDirs[!sx])[sx ? 7: 0];
+                static const auto yMask = mixin("STATIC_TABLES." ~ STATIC_TABLES.yDirs[!sy])[sy ? 7: 0];
+                static const auto shift = dx + 8 * dy;
+                auto validSourcePositions = input.value & (dx != 0 ? xMask
+                        : ~0UL) & (dy != 0 ? yMask : ~0UL);
+                static if (shift > 0) {
+                    set |= validSourcePositions << shift;
+                } else {
+                    set |= validSourcePositions >> -shift;
+                }
+            }
+        }
+    }
+    return PositionMask(set);
+}
+
+unittest {
+    assert(PositionMask.empty.getAdjacent.numOccupied == 0);
+    assert(PositionMask(MCoord(0, 0)).getAdjacent.numOccupied == 3);
+    assert(PositionMask(MCoord(0, 1)).getAdjacent.numOccupied == 5);
+    assert(PositionMask(MCoord(1, 0)).getAdjacent.numOccupied == 5);
+    assert(PositionMask(MCoord(7, 7)).getAdjacent.numOccupied == 3);
+    assert(PositionMask(MCoord(7, 1)).getAdjacent.numOccupied == 5);
+    assert(PositionMask(MCoord(6, 1)).getAdjacent.numOccupied == 8);
+    assert(PositionMask(MCoord(1, 1)).getAdjacent.value == 0x0000_0000_0007_0507UL);
 }
