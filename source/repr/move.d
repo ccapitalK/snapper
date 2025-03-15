@@ -342,8 +342,7 @@ MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT buil
         }
         auto piece = square.getPiece;
         auto owner = square.getPlayer;
-        auto mask = bitBoard.occupied(piece, owner);
-        bitBoard.setMask(piece, owner, mask.union_(PositionMask(pos)));
+        bitBoard.setPiece(piece, owner, pos);
     }
     parent.addValidMovesForKing!AppenderT(bitBoard, builder);
     parent.addValidMovesForKnight!AppenderT(bitBoard, builder);

@@ -1,11 +1,13 @@
 module snapper.bit.board;
 
 import core.bitop;
+import std.algorithm;
 import std.exception;
 import std.format;
 import std.logger;
 import std.traits;
 
+import snapper.bit;
 import snapper.repr.types;
 
 // TODO: We may want to replace enforcements with assertions here
@@ -96,29 +98,38 @@ unittest {
     assert(arr == [0x2UL, 0x8_0000_0000UL, 0x8000_0000_0000_0000UL]);
 }
 
+// Note: Invariant that there are no intersections anywhere
 // TODO: Convert to white bitboard + piece boards, 12 dwords -> 7 dwords
 struct BitBoard {
     // BitMask for each (Piece, Player) combination
-    private PositionMask[numMembers!Piece - 1][numMembers!Player] masks;
+    private PositionMask white;
+    private PositionMask[numMembers!Piece - 1] masks;
+    private PositionMask playerMask(Player player) const
+        => player == Player.black ? white.negated : white;
 
-    PositionMask occupied(Piece piece, Player player) const => masks[player][piece.nonEmpty - 1];
-    PositionMask setMask(Piece piece, Player player, PositionMask mask) => masks[player][piece.nonEmpty - 1] = mask;
+    PositionMask occupied(Piece piece, Player player) const
+        => masks[piece.nonEmpty - 1].intersection(playerMask(player));
 
-    PositionMask occupied(Player playerToMatch) const => this.aggregate!((_, player) => player == playerToMatch);
-    PositionMask occupied(Piece pieceToMatch) const => this.aggregate!((piece, _) => piece == pieceToMatch);
+    void setPiece(Piece piece, Player player, MCoord pos) {
+        foreach (maskPiece; EnumMembers!Piece[1 .. $]) {
+            masks[maskPiece - 1].setPos(pos, piece == maskPiece);
+        }
+        white.setPos(pos, player == Player.white);
+    }
 
-    PositionMask occupied() const => this.aggregate!((_1, _2) => true);
+    PositionMask occupied(Player player) const => occupied.intersection(playerMask(player));
+    PositionMask occupied(Piece piece) const => masks[piece.nonEmpty - 1];
+
+    PositionMask occupied() const => masks[].fold!((a, b) => a.union_(b));
 }
 
-static assert(BitBoard.sizeof == 12 * 8);
+static assert(BitBoard.sizeof == 7 * 8);
 
 PositionMask aggregate(alias predicate)(const ref BitBoard board) {
     PositionMask acc;
-    foreach (player; EnumMembers!Player) {
-        foreach (piece; EnumMembers!Piece[1 .. $]) {
-            if (predicate(piece, player)) {
-                acc.value |= board.occupied(piece, player).value;
-            }
+    foreach (piece; EnumMembers!Piece[1 .. $]) {
+        if (predicate(piece)) {
+            acc.value |= board.occupied(piece).value;
         }
     }
     return acc;
@@ -131,7 +142,7 @@ unittest {
     mask.setPos(1, 1, true);
     mask.setPos(6, 7, true);
     assert(mask.value == 0x4000_0000_0000_0200UL);
-    board.setMask(Piece.bishop, Player.white, mask);
+    mask.iterateBits!(v => board.setPiece(Piece.bishop, Player.white, v.coordFromBit));
     assert(board.occupied() == mask);
     assert(board.occupied(Player.white) == mask);
     assert(board.occupied(Player.black) != mask);
