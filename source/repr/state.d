@@ -189,21 +189,18 @@ static const auto LE_FIELDS = {
 
 // TODO: Remove this, it makes profiling easier at the cost of making the search about 3-5% slower
 float leafEval(GameState state) {
-    static const Piece[5] NON_KING = [Piece.pawn, Piece.rook, Piece.knight, Piece.bishop, Piece.queen];
     const auto whiteMask = state.board.whiteMask;
     auto sum = 0.0;
     PositionMask nonKing = PositionMask.empty;
-    foreach (piece; NON_KING) {
+    foreach (piece; Piece.pawn .. Piece.king) {
         auto mask = state.board.occupied(piece);
         nonKing = nonKing.union_(mask);
-        foreach (player; EnumMembers!Player) {
-            auto pieceValue = Square(player, piece).value;
-            mask = mask.intersection(player == Player.black ? whiteMask.negated : whiteMask);
-
-            int count = mask.numOccupied;
-            float value = count * pieceValue;
-            sum += value;
-        }
+        auto white = mask.intersection(whiteMask).numOccupied;
+        auto black = mask.intersection(whiteMask.negated).numOccupied;
+        int count = white - black;
+        auto pieceValue = piece.value;
+        float value = count * pieceValue;
+        sum += value;
     }
 
     foreach (player; EnumMembers!Player) {

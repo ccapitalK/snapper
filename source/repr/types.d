@@ -74,6 +74,15 @@ static const auto pieceByFenName = [
     tuple('k', Piece.king, 100_000),
 ];
 
+int value(Piece piece) {
+    static foreach (t; pieceByFenName) {
+        if (piece == t[1]) {
+            return t[2];
+        }
+    }
+    return 0;
+}
+
 static const auto NONEMPTY_PIECES = EnumMembers!Piece[1 .. $];
 
 Piece nonEmpty(Piece v) {
