@@ -74,6 +74,8 @@ static const auto pieceByFenName = [
     tuple('k', Piece.king, 100_000),
 ];
 
+static const auto NONEMPTY_PIECES = EnumMembers!Piece[1 .. $];
+
 Piece nonEmpty(Piece v) {
     enforce(v != Piece.empty);
     return v;

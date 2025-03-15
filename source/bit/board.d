@@ -104,26 +104,26 @@ unittest {
 // TODO: Convert to white bitboard + piece boards, 12 dwords -> 7 dwords
 struct BitBoard {
     // BitMask for each (Piece, Player) combination
-    private PositionMask white;
+    PositionMask whiteMask;
     private PositionMask[numMembers!Piece - 1] masks;
     private PositionMask playerMask(Player player) const
-        => player == Player.black ? white.negated : white;
+        => player == Player.black ? whiteMask.negated : whiteMask;
 
     PositionMask occupied(Piece piece, Player player) const
         => masks[piece.nonEmpty - 1].intersection(playerMask(player));
 
     void setSquare(MCoord pos, Square square) {
-        foreach (maskPiece; EnumMembers!Piece[1 .. $]) {
+        foreach (maskPiece; NONEMPTY_PIECES) {
             masks[maskPiece - 1].setPos(pos, square.getPiece == maskPiece);
         }
-        white.setPos(pos, square.getPlayer == Player.white);
+        whiteMask.setPos(pos, square.getPlayer == Player.white);
     }
     Square getSquare(MCoord coord) const {
         auto posMask = PositionMask(coord.bitFromCoord);
-        foreach (piece; EnumMembers!Piece[1 .. $]) {
+        foreach (piece; NONEMPTY_PIECES) {
             auto mask = masks[piece - 1];
             if (mask.intersection(posMask) != PositionMask.empty) {
-                auto player = white.intersection(posMask) == PositionMask.empty
+                auto player = whiteMask.intersection(posMask) == PositionMask.empty
                     ? Player.black : Player.white;
                 return Square(player, piece);
             }
@@ -140,25 +140,25 @@ struct BitBoard {
         static const auto PRIME = 0x100000001B3UL;
         size_t hash = 0xCBF29CE484222325UL;
         PositionMask all = PositionMask.empty;
-        foreach (piece; EnumMembers!Piece[1 .. $]) {
+        foreach (piece; NONEMPTY_PIECES) {
             auto mask = masks[piece - 1];
             hash = (hash ^ mask.value) * PRIME;
             all = all.union_(mask);
         }
-        hash = (hash ^ all.intersection(white).value) * PRIME;
+        hash = (hash ^ all.intersection(whiteMask).value) * PRIME;
         return hash;
     }
 
     bool opEquals(const BitBoard other) const {
         PositionMask all = PositionMask.empty;
-        foreach (piece; EnumMembers!Piece[1 .. $]) {
+        foreach (piece; NONEMPTY_PIECES) {
             auto mask = masks[piece - 1];
             if (mask != other.masks[piece - 1]) {
                 return false;
             }
             all = all.union_(mask);
         }
-        return all.intersection(white) == all.intersection(other.white);
+        return all.intersection(whiteMask) == all.intersection(other.whiteMask);
     }
 }
 
@@ -166,7 +166,7 @@ static assert(BitBoard.sizeof == 7 * 8);
 
 PositionMask aggregate(alias predicate)(const ref BitBoard board) {
     PositionMask acc;
-    foreach (piece; EnumMembers!Piece[1 .. $]) {
+    foreach (piece; NONEMPTY_PIECES) {
         if (predicate(piece)) {
             acc.value |= board.occupied(piece).value;
         }

@@ -10,6 +10,7 @@ import std.math : abs;
 import std.range;
 import std.string;
 
+import snapper.bit;
 import snapper.repr;
 
 struct GameState {
@@ -180,19 +181,24 @@ float leafEval(GameState state) {
 
     static const auto LUTK = genLookup(true);
     static const auto LUTN = genLookup(false);
-    foreach (i; 0 .. 8 * 8) {
-        int file = i & 7;
-        int rank = i >> 3;
-        const auto square = state.board.getSquare(MCoord(file, rank));
-        auto piece = square.getPiece();
-        if (piece == Piece.king) {
-            auto coeff = LUTK[i];
-            auto mult = square.getPlayer() == Player.black ? -1 : 1;
-            sum += square.value + mult * coeff;
-        } else {
-            auto coeff = LUTN[i];
-            sum += square.value * coeff;
-        }
+    const auto whiteMask = state.board.whiteMask;
+    foreach (piece; NONEMPTY_PIECES) {
+        auto mask = state.board.occupied(piece);
+        mask.iterateBits!((v) {
+            auto coord = v.coordFromBit;
+            auto i = coord.y * 8 + coord.x;
+            auto player = (state.board.whiteMask.value & v) == 0
+                ? Player.black : Player.white;
+            auto square = Square(player, piece);
+            if (piece == Piece.king) {
+                auto coeff = LUTK[i];
+                auto mult = square.getPlayer() == Player.black ? -1 : 1;
+                sum += square.value + mult * coeff;
+            } else {
+                auto coeff = LUTN[i];
+                sum += square.value * coeff;
+            }
+        });
     }
     ++numEvals;
     return sum;
