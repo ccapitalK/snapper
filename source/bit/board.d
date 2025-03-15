@@ -2,6 +2,7 @@ module snapper.bit.board;
 
 import core.bitop;
 import std.exception;
+import std.format;
 import std.logger;
 import std.traits;
 
@@ -12,26 +13,47 @@ import snapper.repr.types;
 struct PositionMask {
     ulong value = 0;
 
+    this(ulong value) {
+        this.value = value;
+    }
+
+    this(MCoord coord) {
+        setPos(coord, true);
+    }
+
     static bool inBounds(byte x, byte y) => 0 <= x && x < 8 && 0 <= y && y < 8;
 
+    bool getPos(MCoord coord) const => getPos(coord.x, coord.y);
     bool getPos(byte x, byte y) const {
         enforce(inBounds(x, y));
         return 1UL & (value >> (8 * y + x));
     }
 
+    void setPos(MCoord coord, byte v) => setPos(coord.x, coord.y, v);
     void setPos(byte x, byte y, byte v) {
         enforce(inBounds(x, y));
         auto mask = 1UL << (8 * y + x);
         value = (value & (~mask)) | (v * mask);
     }
 
-    uint numOccupied() const => value.popcnt;
+    void clear() {
+        value = 0;
+    }
 
+    uint numOccupied() const => value.popcnt;
     PositionMask negated() const => PositionMask(~value);
+
+    PositionMask union_(PositionMask other) const => PositionMask(value | other.value);
+    PositionMask intersection(PositionMask other) const => PositionMask(value & other.value);
+
+    string toString() const => format("PositionMask(%x)", value);
+
+    static const PositionMask empty = PositionMask();
 }
 
 // TODO: Experiment and benchmark MSSB vs LSSB iteration
-void iterate(alias func)(const ref PositionMask mask) {
+// Iterate over every set bit of the mask, as the isolated bit
+void iterateBits(alias func)(const ref PositionMask mask) {
     ulong value = mask.value;
     while (value > 0) {
         // Iterate by Least Significant Set Bit (LSSB)
@@ -70,7 +92,7 @@ unittest {
 
     mask.setPos(1, 0, true);
     ulong[] arr;
-    mask.iterate!(v => arr ~= v);
+    mask.iterateBits!(v => arr ~= v);
     assert(arr == [0x2UL, 0x8_0000_0000UL, 0x8000_0000_0000_0000UL]);
 }
 
