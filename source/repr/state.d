@@ -174,49 +174,58 @@ static const auto LE_LUTK = ({
     }
     return arr;
 })();
+
 static const auto LE_FIELDS = {
-    PositionMask[2] masks;
+    PositionMask[4] masks;
     foreach (i, ref v; masks) {
         v = PositionMask(bitsWhere!((x, y) {
             x = x < 4 ? x : 7 - x;
             y = y < 4 ? y : 7 - y;
-            return (min(x, y) / 2) == i;
+            return min(x, y) == i;
         }));
     }
     return masks;
 }();
 
 // TODO: Remove this, it makes profiling easier at the cost of making the search about 3-5% slower
-pragma(inline, false)
 float leafEval(GameState state) {
     static const Piece[5] NON_KING = [Piece.pawn, Piece.rook, Piece.knight, Piece.bishop, Piece.queen];
     const auto whiteMask = state.board.whiteMask;
     auto sum = 0.0;
+    PositionMask nonKing = PositionMask.empty;
     foreach (piece; NON_KING) {
+        auto mask = state.board.occupied(piece);
+        nonKing = nonKing.union_(mask);
         foreach (player; EnumMembers!Player) {
             auto pieceValue = Square(player, piece).value;
-            auto mask = state.board.occupied(piece);
             mask = mask.intersection(player == Player.black ? whiteMask.negated : whiteMask);
 
-            foreach (i; 0 .. LE_FIELDS.length) {
-                float coeff = 1.0 + 0.01 * i;
-                // WTF if this is auto, negative square.value can make this go 1e10?
-                int count = mask.intersection(LE_FIELDS[i]).numOccupied;
-                float value = count * pieceValue * coeff;
-                sum += value;
-            }
+            int count = mask.numOccupied;
+            float value = count * pieceValue;
+            sum += value;
         }
     }
+
     foreach (player; EnumMembers!Player) {
+        // Non king
+        bool isBlack = player == Player.black;
+        auto relevantNonKing = nonKing.intersection(isBlack ? whiteMask.negated : whiteMask);
+        auto playerCoeff = isBlack ? -1 : 1;
+        foreach (i; 0 .. LE_FIELDS.length) {
+            float coeff = 0.02 * (i + 1);
+            int count = relevantNonKing.intersection(LE_FIELDS[i]).numOccupied;
+            float value = playerCoeff * count * coeff;
+            sum += value;
+        }
+        // King
         const auto piece = Piece.king;
         auto square = Square(player, piece);
         auto mask = state.board.occupied(piece);
-        mask = mask.intersection(player == Player.black ? whiteMask.negated : whiteMask);
+        mask = mask.intersection(isBlack ? whiteMask.negated : whiteMask);
         mask.iterateBits!((v) {
             auto i = v.bitPos;
             auto coeff = LE_LUTK[i];
-            auto mult = square.getPlayer() == Player.black ? -1 : 1;
-            sum += square.value + mult * coeff;
+            sum += square.value + playerCoeff * coeff;
         });
     }
     ++numEvals;
