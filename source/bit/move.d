@@ -234,3 +234,43 @@ unittest {
     assert(PositionMask(MCoord(6, 1)).getAdjacent.numOccupied == 8);
     assert(PositionMask(MCoord(1, 1)).getAdjacent.value == 0x0000_0000_0007_0507UL);
 }
+
+PositionMask fillLeft(PositionMask input) {
+    auto v = input.value;
+    v |= (v & STATIC_TABLES.right[3]) >> 4;
+    v |= (v & STATIC_TABLES.right[1]) >> 2;
+    v |= (v & STATIC_TABLES.right[0]) >> 1;
+    return PositionMask(v);
+}
+
+PositionMask fillRight(PositionMask input) {
+    auto v = input.value;
+    v |= (v & STATIC_TABLES.left[4]) << 4;
+    v |= (v & STATIC_TABLES.left[6]) << 2;
+    v |= (v & STATIC_TABLES.left[7]) << 1;
+    return PositionMask(v);
+}
+
+PositionMask fillDown(PositionMask input) {
+    auto v = input.value;
+    v |= v >> 32;
+    v |= v >> 16;
+    v |= v >> 8;
+    return PositionMask(v);
+}
+
+PositionMask fillUp(PositionMask input) {
+    auto v = input.value;
+    v |= v << 32;
+    v |= v << 16;
+    v |= v << 8;
+    return PositionMask(v);
+}
+
+unittest {
+    auto v = PositionMask(0x0000_0000_1000_0500UL);
+    assert(v.fillLeft == PositionMask(0x0000_0000_1f00_0700UL));
+    assert(v.fillRight == PositionMask(0x0000_0000_f000_ff00UL));
+    assert(v.fillDown == PositionMask(0x0000_0000_1010_1515UL));
+    assert(v.fillUp == PositionMask(0x1515_1515_1505_0500UL));
+}
