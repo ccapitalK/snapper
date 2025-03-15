@@ -88,14 +88,14 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     bool isCastling = isKing && abs(dest.x - source.x) > 1;
 
     // Castling
-    *destSquare = *sourceSquare;
-    *sourceSquare = Square.empty;
+    next.board.setSquare(dest, sourceSquare);
+    next.board.setSquare(source, Square.empty);
     if (isCastling) {
         auto rank = dest.y;
         auto origFile = dest.x == 2 ? 0 : 7;
         auto newFile = dest.x == 2 ? 3 : 5;
-        *next.board.getSquare(MCoord(origFile, rank)) = Square.empty;
-        *next.board.getSquare(MCoord(newFile, rank)) = Square(state.turn, Piece.rook);
+        next.board.setSquare(MCoord(origFile, rank), Square.empty);
+        next.board.setSquare(MCoord(newFile, rank), Square(state.turn, Piece.rook));
     }
     if (isCastling || isKing) {
         next.castling.king[state.turn] = 0;
@@ -120,7 +120,7 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     }
     // FIXME: Promotion to pieces other than the queen are possible
     if (isPawn && (dest.y == 0 || dest.y == 7)) {
-        *destSquare = Square(destSquare.getPlayer, Piece.queen);
+        next.board.setSquare(dest, Square(state.turn, Piece.queen));
         promotion = Piece.queen;
     }
     // Advance states
@@ -159,23 +159,23 @@ unittest {
     // Pawn promotes to queen
     state = "8/7P/8/8/k7/8/8/K7 w - - 0 1".parseFen;
     result = state.performMove(MCoord(7, 6), MCoord(7, 7));
-    assert(*result.state.board.getSquare(7, 7) == Square(Player.white, Piece.queen));
+    assert(result.state.board.getSquare(MCoord(7, 7)) == Square(Player.white, Piece.queen));
     assert(result.move.toString() == "h7h8q");
     // Castling should move the pieces
     state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
     result = state.performMove("e1g1".parseMove);
-    assert(*result.state.board.getSquare(6, 0) == Square(Player.white, Piece.king));
-    assert(*result.state.board.getSquare(5, 0) == Square(Player.white, Piece.rook));
+    assert(result.state.board.getSquare(MCoord(6, 0)) == Square(Player.white, Piece.king));
+    assert(result.state.board.getSquare(MCoord(5, 0)) == Square(Player.white, Piece.rook));
     assert(result.state.castling == Castling.none);
     state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
     result = state.performMove("e1c1".parseMove);
-    assert(*result.state.board.getSquare(2, 0) == Square(Player.white, Piece.king));
-    assert(*result.state.board.getSquare(3, 0) == Square(Player.white, Piece.rook));
+    assert(result.state.board.getSquare(MCoord(2, 0)) == Square(Player.white, Piece.king));
+    assert(result.state.board.getSquare(MCoord(3, 0)) == Square(Player.white, Piece.rook));
     assert(result.state.castling == Castling.none);
     state = "r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1".parseFen;
     result = state.performMove("e8c8".parseMove);
-    assert(*result.state.board.getSquare(2, 7) == Square(Player.black, Piece.king));
-    assert(*result.state.board.getSquare(3, 7) == Square(Player.black, Piece.rook));
+    assert(result.state.board.getSquare(MCoord(2, 7)) == Square(Player.black, Piece.king));
+    assert(result.state.board.getSquare(MCoord(3, 7)) == Square(Player.black, Piece.rook));
     assert(result.state.castling == Castling.none);
     // Castling should be invalidated
     state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
@@ -331,24 +331,11 @@ private void addValidMovesForKing(AppenderT)(const ref GameState state, const re
 
 // TODO: Always use a bitboard
 MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT builder) {
-    BitBoard bitBoard;
-    foreach (i; 0 .. 64) {
-        auto file = i & 7;
-        auto rank = i >> 3;
-        auto pos = MCoord(file, rank);
-        auto square = *parent.board.getSquare(pos);
-        if (square == Square.empty) {
-            continue;
-        }
-        auto piece = square.getPiece;
-        auto owner = square.getPlayer;
-        bitBoard.setPiece(piece, owner, pos);
-    }
-    parent.addValidMovesForKing!AppenderT(bitBoard, builder);
-    parent.addValidMovesForKnight!AppenderT(bitBoard, builder);
-    parent.addValidMovesForRook!AppenderT(bitBoard, builder);
-    parent.addValidMovesForBishop!AppenderT(bitBoard, builder);
-    parent.addValidMovesForPawn!AppenderT(bitBoard, builder);
+    parent.addValidMovesForKing!AppenderT(parent.board, builder);
+    parent.addValidMovesForKnight!AppenderT(parent.board, builder);
+    parent.addValidMovesForRook!AppenderT(parent.board, builder);
+    parent.addValidMovesForBishop!AppenderT(parent.board, builder);
+    parent.addValidMovesForPawn!AppenderT(parent.board, builder);
     auto moves = builder.data;
     return moves;
 }

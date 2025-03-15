@@ -5,6 +5,7 @@ import std.array;
 import std.ascii;
 import std.conv;
 import std.exception;
+import std.logger;
 import std.math : abs;
 import std.range;
 import std.string;
@@ -48,7 +49,7 @@ GameState parseFen(string input) {
                 break;
             }
             enforce(file < 8 && rank < 8);
-            *fen.board.getSquare(file, 7 - rank) = Square(player, piece);
+            fen.board.setSquare(MCoord(file, cast(int)(7 - rank)), Square(player, piece));
             ++file;
         }
     }
@@ -89,7 +90,7 @@ string toFen(const ref GameState state) {
     foreach (rank; iota(8).retro) {
         size_t numEmpty = 0;
         foreach (file; iota(8)) {
-            auto square = state.board.getSquare(file, rank);
+            auto square = state.board.getSquare(MCoord(file, rank));
             if (square.isEmpty) {
                 ++numEmpty;
                 continue;
@@ -149,8 +150,8 @@ unittest {
 
 unittest {
     auto parsed = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2".parseFen;
-    assert(*parsed.board.getSquare(5, 5) == Square());
-    assert(*parsed.board.getSquare(0, 0) == Square(Player.white, Piece.rook));
+    assert(parsed.board.getSquare(MCoord(5, 5)) == Square());
+    assert(parsed.board.getSquare(MCoord(0, 0)) == Square(Player.white, Piece.rook));
     assert(parsed.turn == Player.black);
     assert(parsed.castling == Castling.all);
     assert(parsed.halfMove == 1);
@@ -182,7 +183,7 @@ float leafEval(GameState state) {
     foreach (i; 0 .. 8 * 8) {
         int file = i & 7;
         int rank = i >> 3;
-        const auto square = state.board.getSquare(file, rank);
+        const auto square = state.board.getSquare(MCoord(file, rank));
         auto piece = square.getPiece();
         if (piece == Piece.king) {
             auto coeff = LUTK[i];

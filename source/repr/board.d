@@ -13,19 +13,12 @@ import std.stdio;
 import std.traits;
 import std.typecons;
 
+import snapper.bit;
 import snapper.repr;
 
-struct Board {
-    // TODO: Bitboard
-    Square[64] pieces;
+alias Board = BitBoard;
 
-    // Rank major order
-    Square* getSquare(size_t file, size_t rank) => &pieces[file + 8 * rank];
-    const(Square)* getSquare(size_t file, size_t rank) const => &pieces[file + 8 * rank];
-
-    Square* getSquare(MCoord coord) => getSquare(coord.x, coord.y);
-    const(Square)* getSquare(MCoord coord) const => getSquare(coord.x, coord.y);
-}
+static assert(Board.sizeof == BitBoard.sizeof);
 
 string getAsciiArtRepr(const ref Board board) {
     auto builder = appender(cast(string)[]);
@@ -34,7 +27,7 @@ string getAsciiArtRepr(const ref Board board) {
         builder.put(format("%d  ", rank + 1));
         foreach (x; 0 .. 8) {
             auto file = x;
-            auto square = *board.getSquare(file, rank);
+            auto square = board.getSquare(MCoord(file, rank));
             char c;
         pSwitch:
             final switch (square.getPiece()) {

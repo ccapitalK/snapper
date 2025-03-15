@@ -15,7 +15,7 @@ import snapper.repr.types;
 struct PositionMask {
     ulong value = 0;
 
-    this(ulong value) {
+    this(ulong value) nothrow {
         this.value = value;
     }
 
@@ -23,18 +23,14 @@ struct PositionMask {
         setPos(coord, true);
     }
 
-    static bool inBounds(byte x, byte y) => 0 <= x && x < 8 && 0 <= y && y < 8;
-
-    bool getPos(MCoord coord) const => getPos(coord.x, coord.y);
-    bool getPos(byte x, byte y) const {
-        enforce(inBounds(x, y));
-        return 1UL & (value >> (8 * y + x));
+    bool getPos(MCoord coord) const {
+        enforce(coord.isInBounds());
+        return 1UL & (value >> (8 * coord.y + coord.x));
     }
 
-    void setPos(MCoord coord, byte v) => setPos(coord.x, coord.y, v);
-    void setPos(byte x, byte y, byte v) {
-        enforce(inBounds(x, y));
-        auto mask = 1UL << (8 * y + x);
+    void setPos(MCoord coord, byte v) {
+        enforce(coord.isInBounds());
+        auto mask = coord.bitFromCoord;
         value = (value & (~mask)) | (v * mask);
     }
 
@@ -45,8 +41,8 @@ struct PositionMask {
     uint numOccupied() const => value.popcnt;
     PositionMask negated() const => PositionMask(~value);
 
-    PositionMask union_(PositionMask other) const => PositionMask(value | other.value);
-    PositionMask intersection(PositionMask other) const => PositionMask(value & other.value);
+    PositionMask union_(PositionMask other) const nothrow => PositionMask(value | other.value);
+    PositionMask intersection(PositionMask other) const nothrow => PositionMask(value & other.value);
 
     string toString() const => format("PositionMask(%x)", value);
 
@@ -70,29 +66,35 @@ static assert(PositionMask.sizeof == 8);
 unittest {
     PositionMask mask;
 
-    mask.setPos(0, 0, true);
-    assert(mask.getPos(0, 0));
+    auto coord = MCoord(0, 0);
+    mask.setPos(coord, true);
+    assert(mask.getPos(coord));
     assert(mask.value == 1UL);
 
-    mask.setPos(3, 4, true);
-    assert(mask.getPos(3, 4));
+    coord = MCoord(3, 4);
+    mask.setPos(coord, true);
+    assert(mask.getPos(coord));
     assert(mask.value == 0x8_0000_0001UL);
 
-    assert(!mask.getPos(0, 1));
-    mask.setPos(0, 1, false);
-    assert(!mask.getPos(0, 1));
+    coord = MCoord(0, 1);
+    assert(!mask.getPos(coord));
+    mask.setPos(coord, false);
+    assert(!mask.getPos(coord));
     assert(mask.value == 0x8_0000_0001UL);
 
-    mask.setPos(0, 0, false);
-    assert(!mask.getPos(0, 0));
+    coord = MCoord(0, 0);
+    mask.setPos(coord, false);
+    assert(!mask.getPos(coord));
     assert(mask.value == 0x8_0000_0000UL);
 
-    assert(!mask.getPos(7, 7));
-    mask.setPos(7, 7, true);
-    assert(mask.getPos(7, 7));
+    coord = MCoord(7, 7);
+    assert(!mask.getPos(coord));
+    mask.setPos(coord, true);
+    assert(mask.getPos(coord));
     assert(mask.value == 0x8000_0008_0000_0000UL);
 
-    mask.setPos(1, 0, true);
+    coord = MCoord(1, 0);
+    mask.setPos(coord, true);
     ulong[] arr;
     mask.iterateBits!(v => arr ~= v);
     assert(arr == [0x2UL, 0x8_0000_0000UL, 0x8000_0000_0000_0000UL]);
@@ -110,17 +112,54 @@ struct BitBoard {
     PositionMask occupied(Piece piece, Player player) const
         => masks[piece.nonEmpty - 1].intersection(playerMask(player));
 
-    void setPiece(Piece piece, Player player, MCoord pos) {
+    void setSquare(MCoord pos, Square square) {
         foreach (maskPiece; EnumMembers!Piece[1 .. $]) {
-            masks[maskPiece - 1].setPos(pos, piece == maskPiece);
+            masks[maskPiece - 1].setPos(pos, square.getPiece == maskPiece);
         }
-        white.setPos(pos, player == Player.white);
+        white.setPos(pos, square.getPlayer == Player.white);
+    }
+    Square getSquare(MCoord coord) const {
+        auto posMask = PositionMask(coord.bitFromCoord);
+        foreach (piece; EnumMembers!Piece[1 .. $]) {
+            auto mask = masks[piece - 1];
+            if (mask.intersection(posMask) != PositionMask.empty) {
+                auto player = white.intersection(posMask) == PositionMask.empty
+                    ? Player.black : Player.white;
+                return Square(player, piece);
+            }
+        }
+        return Square.empty;
     }
 
     PositionMask occupied(Player player) const => occupied.intersection(playerMask(player));
     PositionMask occupied(Piece piece) const => masks[piece.nonEmpty - 1];
 
     PositionMask occupied() const => masks[].fold!((a, b) => a.union_(b));
+
+    size_t toHash() const nothrow {
+        static const auto PRIME = 0x100000001B3UL;
+        size_t hash = 0xCBF29CE484222325UL;
+        PositionMask all = PositionMask.empty;
+        foreach (piece; EnumMembers!Piece[1 .. $]) {
+            auto mask = masks[piece - 1];
+            hash = (hash ^ mask.value) * PRIME;
+            all = all.union_(mask);
+        }
+        hash = (hash ^ all.intersection(white).value) * PRIME;
+        return hash;
+    }
+
+    bool opEquals(const BitBoard other) const {
+        PositionMask all = PositionMask.empty;
+        foreach (piece; EnumMembers!Piece[1 .. $]) {
+            auto mask = masks[piece - 1];
+            if (mask != other.masks[piece - 1]) {
+                return false;
+            }
+            all = all.union_(mask);
+        }
+        return all.intersection(white) == all.intersection(other.white);
+    }
 }
 
 static assert(BitBoard.sizeof == 7 * 8);
@@ -139,10 +178,10 @@ unittest {
     BitBoard board;
     assert(board.occupied.value == 0);
     PositionMask mask;
-    mask.setPos(1, 1, true);
-    mask.setPos(6, 7, true);
+    mask.setPos(MCoord(1, 1), true);
+    mask.setPos(MCoord(6, 7), true);
     assert(mask.value == 0x4000_0000_0000_0200UL);
-    mask.iterateBits!(v => board.setPiece(Piece.bishop, Player.white, v.coordFromBit));
+    mask.iterateBits!(v => board.setSquare(v.coordFromBit, Square(Player.white, Piece.bishop)));
     assert(board.occupied() == mask);
     assert(board.occupied(Player.white) == mask);
     assert(board.occupied(Player.black) != mask);
