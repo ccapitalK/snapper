@@ -4,12 +4,17 @@ import std.ascii;
 import std.exception;
 import std.range;
 import std.typecons;
+import std.traits;
 
 static const int[2] SIGNS = [-1, 1];
 static const MCoord[4] DIRS = [
     MCoord(0, 1), MCoord(1, 0), MCoord(0, -1), MCoord(-1, 0),
 ];
 static auto atMostOne() => iota(-1, 2);
+
+size_t numMembers(E)() if (is(E == enum)) {
+    return (EnumMembers!E).length;
+}
 
 struct MCoord {
     // File, from 0
@@ -46,6 +51,8 @@ enum Player : ubyte {
     black,
 }
 
+static assert(numMembers!Player == 2);
+
 enum Piece : ubyte {
     empty = 0,
     pawn,
@@ -56,6 +63,8 @@ enum Piece : ubyte {
     king,
 }
 
+static assert(numMembers!Piece == 7);
+
 static const auto pieceByFenName = [
     tuple('p', Piece.pawn, 1),
     tuple('r', Piece.rook, 5),
@@ -64,6 +73,11 @@ static const auto pieceByFenName = [
     tuple('q', Piece.queen, 9),
     tuple('k', Piece.king, 100_000),
 ];
+
+Piece nonEmpty(Piece v) {
+    enforce(v != Piece.empty);
+    return v;
+}
 
 private int[16] genValuesArr() {
     int[16] x;

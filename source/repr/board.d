@@ -58,8 +58,8 @@ string getAsciiArtRepr(const ref Board board) {
 bool isEmpty(const ref Board board, MCoord coord) => board.getSquare(coord).isEmpty;
 
 struct Castling {
-    bool[EnumMembers!Player.length] king;
-    bool[EnumMembers!Player.length] queen;
+    bool[numMembers!Player] king;
+    bool[numMembers!Player] queen;
 
     static const Castling none = Castling([false, false], [false, false]);
     static const Castling all = Castling([true, true], [true, true]);
