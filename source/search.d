@@ -18,8 +18,7 @@ class StopException : Throwable {
     }
 }
 
-const static float INFINITY = 1. / 0.;
-const static size_t GAMESTATE_TABLE_MEMORY_BUDGET = 1024 * 1024;
+const static size_t GAMESTATE_TABLE_MEMORY_BUDGET = 8 * 1024 * 1024;
 
 // TODO: Clean this whole module up
 struct SearchContext {
@@ -133,7 +132,7 @@ private SearchNode pickBestMoveInner(
     auto sortOrder = SortOrder(children, multForPlayer, frame.nextMoveInPrincipal);
     const(MoveDest)* best = null;
     SearchNode bestNode = null;
-    float bestScore = -INFINITY;
+    float bestScore = -double.infinity;
     foreach (const child; sortOrder.range) {
         SearchNode childNode;
         double score = child.eval;

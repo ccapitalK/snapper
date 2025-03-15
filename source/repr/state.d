@@ -187,7 +187,6 @@ static const auto LE_FIELDS = {
     return masks;
 }();
 
-// TODO: Remove this, it makes profiling easier at the cost of making the search about 3-5% slower
 float leafEval(GameState state) {
     const auto whiteMask = state.board.whiteMask;
     auto sum = 0.0;
@@ -199,8 +198,7 @@ float leafEval(GameState state) {
         auto black = mask.intersection(whiteMask.negated).numOccupied;
         int count = white - black;
         auto pieceValue = piece.value;
-        float value = count * pieceValue;
-        sum += value;
+        sum += count * pieceValue;
     }
 
     foreach (player; EnumMembers!Player) {
@@ -208,21 +206,20 @@ float leafEval(GameState state) {
         bool isBlack = player == Player.black;
         auto relevantNonKing = nonKing.intersection(isBlack ? whiteMask.negated : whiteMask);
         auto playerCoeff = isBlack ? -1 : 1;
-        foreach (i; 0 .. LE_FIELDS.length) {
-            float coeff = 0.02 * (i + 1);
-            int count = relevantNonKing.intersection(LE_FIELDS[i]).numOccupied;
-            float value = playerCoeff * count * coeff;
-            sum += value;
+        {
+            auto sumWeight = 0;
+            foreach (i; 0 .. LE_FIELDS.length) {
+                sumWeight += (i + 1) * relevantNonKing.intersection(LE_FIELDS[i]).numOccupied;
+            }
+            sum += 0.02 * playerCoeff * sumWeight;
         }
-        // King
         const auto piece = Piece.king;
-        auto square = Square(player, piece);
         auto mask = state.board.occupied(piece);
         mask = mask.intersection(isBlack ? whiteMask.negated : whiteMask);
         mask.iterateBits!((v) {
             auto i = v.bitPos;
             auto coeff = LE_LUTK[i];
-            sum += square.value + playerCoeff * coeff;
+            sum += playerCoeff * (piece.value + coeff);
         });
     }
     ++numEvals;
