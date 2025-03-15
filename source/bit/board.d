@@ -181,6 +181,7 @@ unittest {
     mask.setPos(MCoord(1, 1), true);
     mask.setPos(MCoord(6, 7), true);
     assert(mask.value == 0x4000_0000_0000_0200UL);
+    assert(mask.numOccupied == 2);
     mask.iterateBits!(v => board.setSquare(v.coordFromBit, Square(Player.white, Piece.bishop)));
     assert(board.occupied() == mask);
     assert(board.occupied(Player.white) == mask);

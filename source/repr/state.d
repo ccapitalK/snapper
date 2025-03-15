@@ -9,6 +9,7 @@ import std.logger;
 import std.math : abs;
 import std.range;
 import std.string;
+import std.traits;
 
 import snapper.bit;
 import snapper.repr;
@@ -166,7 +167,7 @@ static ulong numEvals;
 pragma(inline, false)
 float leafEval(GameState state) {
     auto sum = 0.0;
-    static auto genLookup(bool protect) {
+    static const auto LUTK = ({
         float[64] arr;
         foreach (i, ref v; arr) {
             size_t x = i & 7;
@@ -174,31 +175,48 @@ float leafEval(GameState state) {
             auto v1 = (x / 3.5) - 1;
             auto v2 = (y / 3.5) - 1;
             auto m = abs(v1 * v2);
-            v = 1 + .05 * (protect ? m : (1 - m));
+            v = 1 + .05 * m;
         }
         return arr;
-    }
+    })();
+    static const auto FIELDS = {
+        PositionMask[4] masks;
+        foreach (i, ref v; masks) {
+            v = PositionMask(bitsWhere!((x, y) {
+                x = x < 4 ? x : 7 - x;
+                y = y < 4 ? y : 7 - y;
+                return min(x, y) == i;
+            }));
+        }
+        return masks;
+    }();
 
-    static const auto LUTK = genLookup(true);
-    static const auto LUTN = genLookup(false);
     const auto whiteMask = state.board.whiteMask;
     foreach (piece; NONEMPTY_PIECES) {
-        auto mask = state.board.occupied(piece);
-        mask.iterateBits!((v) {
-            auto coord = v.coordFromBit;
-            auto i = coord.y * 8 + coord.x;
-            auto player = (state.board.whiteMask.value & v) == 0
-                ? Player.black : Player.white;
+        foreach (player; EnumMembers!Player) {
             auto square = Square(player, piece);
+            auto mask = state.board.occupied(piece);
+            mask = mask.intersection(player == Player.black ? whiteMask.negated : whiteMask);
             if (piece == Piece.king) {
-                auto coeff = LUTK[i];
-                auto mult = square.getPlayer() == Player.black ? -1 : 1;
-                sum += square.value + mult * coeff;
+                mask.iterateBits!((v) {
+                    auto i = v.bitPos;
+                    auto coeff = LUTK[i];
+                    auto mult = square.getPlayer() == Player.black ? -1 : 1;
+                    sum += square.value + mult * coeff;
+                });
             } else {
-                auto coeff = LUTN[i];
-                sum += square.value * coeff;
+                foreach (i; 0 .. FIELDS.length) {
+                    float coeff = 1.0 + 0.01 * i;
+                    // WTF if this is auto, negative square.value can make this go 1e10?
+                    int count = mask.intersection(FIELDS[i]).numOccupied;
+                    assert (count < 16);
+                    assert (coeff < 2.0);
+                    assert (square.value < 1e3);
+                    float value = count * square.value * coeff;
+                    sum += value;
+                }
             }
-        });
+        }
     }
     ++numEvals;
     return sum;
