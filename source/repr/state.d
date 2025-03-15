@@ -162,61 +162,62 @@ unittest {
 }
 
 static ulong numEvals;
+static const auto LE_LUTK = ({
+    float[64] arr;
+    foreach (i, ref v; arr) {
+        size_t x = i & 7;
+        size_t y = i >> 3;
+        auto v1 = (x / 3.5) - 1;
+        auto v2 = (y / 3.5) - 1;
+        auto m = abs(v1 * v2);
+        v = 1 + .05 * m;
+    }
+    return arr;
+})();
+static const auto LE_FIELDS = {
+    PositionMask[2] masks;
+    foreach (i, ref v; masks) {
+        v = PositionMask(bitsWhere!((x, y) {
+            x = x < 4 ? x : 7 - x;
+            y = y < 4 ? y : 7 - y;
+            return (min(x, y) / 2) == i;
+        }));
+    }
+    return masks;
+}();
 
 // TODO: Remove this, it makes profiling easier at the cost of making the search about 3-5% slower
 pragma(inline, false)
 float leafEval(GameState state) {
-    auto sum = 0.0;
-    static const auto LUTK = ({
-        float[64] arr;
-        foreach (i, ref v; arr) {
-            size_t x = i & 7;
-            size_t y = i >> 3;
-            auto v1 = (x / 3.5) - 1;
-            auto v2 = (y / 3.5) - 1;
-            auto m = abs(v1 * v2);
-            v = 1 + .05 * m;
-        }
-        return arr;
-    })();
-    static const auto FIELDS = {
-        PositionMask[4] masks;
-        foreach (i, ref v; masks) {
-            v = PositionMask(bitsWhere!((x, y) {
-                x = x < 4 ? x : 7 - x;
-                y = y < 4 ? y : 7 - y;
-                return min(x, y) == i;
-            }));
-        }
-        return masks;
-    }();
-
+    static const Piece[5] NON_KING = [Piece.pawn, Piece.rook, Piece.knight, Piece.bishop, Piece.queen];
     const auto whiteMask = state.board.whiteMask;
-    foreach (piece; NONEMPTY_PIECES) {
+    auto sum = 0.0;
+    foreach (piece; NON_KING) {
         foreach (player; EnumMembers!Player) {
-            auto square = Square(player, piece);
+            auto pieceValue = Square(player, piece).value;
             auto mask = state.board.occupied(piece);
             mask = mask.intersection(player == Player.black ? whiteMask.negated : whiteMask);
-            if (piece == Piece.king) {
-                mask.iterateBits!((v) {
-                    auto i = v.bitPos;
-                    auto coeff = LUTK[i];
-                    auto mult = square.getPlayer() == Player.black ? -1 : 1;
-                    sum += square.value + mult * coeff;
-                });
-            } else {
-                foreach (i; 0 .. FIELDS.length) {
-                    float coeff = 1.0 + 0.01 * i;
-                    // WTF if this is auto, negative square.value can make this go 1e10?
-                    int count = mask.intersection(FIELDS[i]).numOccupied;
-                    assert (count < 16);
-                    assert (coeff < 2.0);
-                    assert (square.value < 1e3);
-                    float value = count * square.value * coeff;
-                    sum += value;
-                }
+
+            foreach (i; 0 .. LE_FIELDS.length) {
+                float coeff = 1.0 + 0.01 * i;
+                // WTF if this is auto, negative square.value can make this go 1e10?
+                int count = mask.intersection(LE_FIELDS[i]).numOccupied;
+                float value = count * pieceValue * coeff;
+                sum += value;
             }
         }
+    }
+    foreach (player; EnumMembers!Player) {
+        const auto piece = Piece.king;
+        auto square = Square(player, piece);
+        auto mask = state.board.occupied(piece);
+        mask = mask.intersection(player == Player.black ? whiteMask.negated : whiteMask);
+        mask.iterateBits!((v) {
+            auto i = v.bitPos;
+            auto coeff = LE_LUTK[i];
+            auto mult = square.getPlayer() == Player.black ? -1 : 1;
+            sum += square.value + mult * coeff;
+        });
     }
     ++numEvals;
     return sum;
