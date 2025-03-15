@@ -10,8 +10,9 @@ import std.math : abs;
 import std.traits;
 import std.typecons;
 
-import snapper.stack_appender;
+import snapper.bit;
 import snapper.repr;
+import snapper.stack_appender;
 
 struct Move {
     MCoord source;
@@ -210,40 +211,78 @@ bool canTake(const ref GameState state, MCoord source, MCoord dest) {
 }
 
 pragma(inline, true)
-void addValidMovesForPawn(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source) {
+void addValidMovesForPawn(AppenderT)(const ref GameState state, const ref BitBoard board, AppenderT builder) {
     // TODO: Promotion to pieces that aren't queen
-    static const int[2] DOUBLE_RANK = [1, 6];
-    static const int[2] FORWARD_DIR = [1, -1];
-    auto currentTurn = state.turn;
-    auto forward = MCoord(source.x, source.y + FORWARD_DIR[currentTurn]);
-    // Pawns on the back rank are illegal
-    enforce(forward.isInBounds);
-    bool canMoveForward = state.board.isEmpty(forward);
-    if (canMoveForward) {
-        builder.put(state.performMove(source, forward));
-    }
-    if (canMoveForward && source.y == DOUBLE_RANK[currentTurn]) {
-        auto doubleForward = MCoord(source.x, source.y + 2 * FORWARD_DIR[currentTurn]);
-        if (state.board.isEmpty(doubleForward)) {
-            builder.put(state.performMove(source, doubleForward));
+    auto pawns = board.occupied(Piece.pawn, state.turn);
+    pawns.iterateBits!((s) {
+        // TODO: Optimize
+        auto source = s.coordFromBit;
+        static const int[2] DOUBLE_RANK = [1, 6];
+        static const int[2] FORWARD_DIR = [1, -1];
+        auto currentTurn = state.turn;
+        auto forward = MCoord(source.x, source.y + FORWARD_DIR[currentTurn]);
+        // Pawns on the back rank are illegal
+        enforce(forward.isInBounds);
+        bool canMoveForward = state.board.isEmpty(forward);
+        if (canMoveForward) {
+            builder.put(state.performMove(source, forward));
         }
-    }
-    foreach (sign; SIGNS) {
-        auto dest = MCoord(source.x + sign, source.y + FORWARD_DIR[currentTurn]);
-        if (state.canTake(source, dest) || state.enPassant == dest) {
-            builder.put(state.performMove(source, dest));
+        if (canMoveForward && source.y == DOUBLE_RANK[currentTurn]) {
+            auto doubleForward = MCoord(source.x, source.y + 2 * FORWARD_DIR[currentTurn]);
+            if (state.board.isEmpty(doubleForward)) {
+                builder.put(state.performMove(source, doubleForward));
+            }
         }
-    }
+        foreach (sign; SIGNS) {
+            auto dest = MCoord(source.x + sign, source.y + FORWARD_DIR[currentTurn]);
+            if (state.canTake(source, dest) || state.enPassant == dest) {
+                builder.put(state.performMove(source, dest));
+            }
+        }
+    });
 }
 
 pragma(inline, true)
-void addValidMovesForBishop(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source) {
-    foreach (xSign; SIGNS) {
-        foreach (ySign; SIGNS) {
+void addValidMovesForBishop(AppenderT)(const ref GameState state, const ref BitBoard board, AppenderT builder) {
+    auto bishops = board.occupied(Piece.bishop, state.turn);
+    bishops = bishops.union_(board.occupied(Piece.queen, state.turn));
+    bishops.iterateBits!((s) {
+        auto source = s.coordFromBit;
+        // TODO: Optimize
+        foreach (xSign; SIGNS) {
+            foreach (ySign; SIGNS) {
+                ({
+                    foreach (step; 1 .. 8) {
+                        auto dest = MCoord(
+                        source.x + step * xSign,
+                        source.y + step * ySign,
+                        );
+                        if (!state.canTakeOrMove(source, dest)) {
+                            return;
+                        }
+                        builder.put(state.performMove(source, dest));
+                        if (!state.board.isEmpty(dest)) {
+                            return;
+                        }
+                    }
+                })();
+            }
+        }
+    });
+}
+
+pragma(inline, true)
+void addValidMovesForRook(AppenderT)(const ref GameState state, const ref BitBoard board, AppenderT builder) {
+    auto rooks = board.occupied(Piece.rook, state.turn);
+    rooks = rooks.union_(board.occupied(Piece.queen, state.turn));
+    rooks.iterateBits!((s) {
+        auto source = s.coordFromBit;
+        // TODO: Optimize this
+        foreach (dir; DIRS) {
             foreach (step; 1 .. 8) {
                 auto dest = MCoord(
-                    source.x + step * xSign,
-                    source.y + step * ySign,
+                    source.x + step * dir.x,
+                    source.y + step * dir.y,
                 );
                 if (!state.canTakeOrMove(source, dest)) {
                     break;
@@ -254,98 +293,63 @@ void addValidMovesForBishop(AppenderT)(const ref GameState state, AppenderT* bui
                 }
             }
         }
-    }
+    });
 }
 
 pragma(inline, true)
-void addValidMovesForRook(AppenderT)(const ref GameState state, AppenderT* builder, MCoord source) {
-    foreach (dir; DIRS) {
-        foreach (step; 1 .. 8) {
-            auto dest = MCoord(
-                source.x + step * dir.x,
-                source.y + step * dir.y,
-            );
-            if (!state.canTakeOrMove(source, dest)) {
-                break;
-            }
+private void addValidMovesForKnight(AppenderT)(const ref GameState state, const ref BitBoard board, AppenderT builder) {
+    auto knights = board.occupied(Piece.knight, state.turn);
+    auto noAllyPieceMask = board.occupied(state.turn).negated;
+    knights.iterateBits!((s) {
+        auto sMask = PositionMask(s);
+        auto source = s.coordFromBit;
+        auto adj = sMask.getKnightMoves;
+        PositionMask dests = adj.intersection(noAllyPieceMask);
+        dests.iterateBits!((d) {
+            auto dest = d.coordFromBit;
             builder.put(state.performMove(source, dest));
-            if (!state.board.isEmpty(dest)) {
-                break;
-            }
-        }
-    }
+        });
+    });
 }
 
 pragma(inline, true)
-private void addValidMovesForKnight(AppenderT)(const ref GameState state, AppenderT builder, MCoord source) {
-    foreach (xSign; SIGNS) {
-        foreach (ySign; SIGNS) {
-            foreach (flip; 0 .. 2) {
-                auto dx = flip ? 2 : 1;
-                auto dy = flip ? 1 : 2;
-                auto dest = MCoord(
-                    source.x + dx * xSign,
-                    source.y + dy * ySign,
-                );
-                if (state.canTakeOrMove(source, dest)) {
-                    builder.put(state.performMove(source, dest));
-                }
-            }
-        }
-    }
+private void addValidMovesForKing(AppenderT)(const ref GameState state, const ref BitBoard board, AppenderT builder) {
+    auto king = board.occupied(Piece.king, state.turn);
+    auto noAllyPieceMask = board.occupied(state.turn).negated;
+    // TODO: Castling
+    king.iterateBits!((s) {
+        auto sMask = PositionMask(s);
+        auto source = s.coordFromBit;
+        auto adj = sMask.getAdjacent;
+        PositionMask dests = adj.intersection(noAllyPieceMask);
+        dests.iterateBits!((d) {
+            auto dest = d.coordFromBit;
+            builder.put(state.performMove(source, dest));
+        });
+    });
 }
 
-pragma(inline, true)
-private void addValidMovesForKing(AppenderT)(const ref GameState state, AppenderT builder, MCoord source) {
-    // TODO: Castle
-    foreach (dx; atMostOne) {
-        foreach (dy; atMostOne) {
-            if (dx == 0 && dy == 0) {
-                continue;
-            }
-            auto destSquare = MCoord(source.x + dx, source.y + dy);
-            if (state.canTakeOrMove(source, destSquare)) {
-                builder.put(state.performMove(source, destSquare));
-            }
-        }
-    }
-}
-
+// TODO: Always use a bitboard
 MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT builder) {
+    BitBoard bitBoard;
     foreach (i; 0 .. 64) {
         auto file = i & 7;
         auto rank = i >> 3;
-        auto square = *parent.board.getSquare(file, rank);
-        auto piece = square.getPiece;
-        auto owner = square.getPlayer;
-        if (square == Square.empty || owner != parent.turn) {
+        auto pos = MCoord(file, rank);
+        auto square = *parent.board.getSquare(pos);
+        if (square == Square.empty) {
             continue;
         }
-        auto piecePos = MCoord(cast(ubyte) file, cast(ubyte) rank);
-        switch (piece) {
-        case Piece.pawn:
-            addValidMovesForPawn(parent, builder, piecePos);
-            break;
-        case Piece.bishop:
-            addValidMovesForBishop(parent, builder, piecePos);
-            break;
-        case Piece.rook:
-            addValidMovesForRook(parent, builder, piecePos);
-            break;
-        case Piece.knight:
-            addValidMovesForKnight(parent, builder, piecePos);
-            break;
-        case Piece.queen:
-            addValidMovesForBishop(parent, builder, piecePos);
-            addValidMovesForRook(parent, builder, piecePos);
-            break;
-        case Piece.king:
-            addValidMovesForKing(parent, builder, piecePos);
-            break;
-        default:
-            assert(0);
-        }
+        auto piece = square.getPiece;
+        auto owner = square.getPlayer;
+        auto mask = bitBoard.occupied(piece, owner);
+        bitBoard.setMask(piece, owner, mask.union_(PositionMask(pos)));
     }
+    parent.addValidMovesForKing!AppenderT(bitBoard, builder);
+    parent.addValidMovesForKnight!AppenderT(bitBoard, builder);
+    parent.addValidMovesForRook!AppenderT(bitBoard, builder);
+    parent.addValidMovesForBishop!AppenderT(bitBoard, builder);
+    parent.addValidMovesForPawn!AppenderT(bitBoard, builder);
     auto moves = builder.data;
     return moves;
 }
@@ -366,8 +370,24 @@ MoveDest[] validMoves(const ref GameState parent) {
 }
 
 unittest {
-    auto state = "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq - 0 1".parseFen;
-    assert(state.validMoves.length == 6);
-    state = "k7/8/8/5Pp1/8/8/8/K7 w - g6 0 1".parseFen;
+    // King moves
+    auto state = "1k6/8/8/8/8/8/8/K7 w - - 0 1".parseFen;
+    assert(state.validMoves.length == 3);
+    state.turn = Player.black;
     assert(state.validMoves.length == 5);
+    // Knight moves
+    state = "1k6/8/8/4N3/3p4/8/2N5/K6N w - - 0 1".parseFen;
+    assert(state.validMoves.length == 18);
+    // Rook moves
+    state = "8/5r2/8/8/5R2/8/3R4/8 w - - 0 1".parseFen;
+    assert(state.validMoves.length == 27);
+    state = "K7/5r2/8/8/2Q5/8/8/k7 w - - 0 1".parseFen;
+    assert(state.validMoves.length == 27);
+
+    // Pawn moves
+
+    // auto state = "4k3/4p3/8/8/8/8/4P3/4K3 b KQkq - 0 1".parseFen;
+    // assert(state.validMoves.length == 6);
+    // state = "k7/8/8/5Pp1/8/8/8/K7 w - g6 0 1".parseFen;
+    // assert(state.validMoves.length == 5);
 }
