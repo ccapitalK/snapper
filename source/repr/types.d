@@ -53,6 +53,7 @@ enum Player : ubyte {
 
 static assert(numMembers!Player == 2);
 
+// Note: A bunch of code assumes these exact backing values for each piece
 enum Piece : ubyte {
     empty = 0,
     pawn,

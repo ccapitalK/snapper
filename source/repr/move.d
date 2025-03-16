@@ -68,14 +68,13 @@ struct CastlingCheck {
     string side;
 }
 
-MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
+MoveDest performMove(const ref GameState state, MCoord source, MCoord dest, Piece promotion = Piece.empty) {
     const static CastlingCheck[4] castlingChecks = [
         CastlingCheck("a1".parseCoord, Player.white, "queen"),
         CastlingCheck("h1".parseCoord, Player.white, "king"),
         CastlingCheck("a8".parseCoord, Player.black, "queen"),
         CastlingCheck("h8".parseCoord, Player.black, "king"),
     ];
-    Piece promotion = Piece.empty;
     GameState next = state;
     auto sourceSquare = next.board.getSquare(source);
     auto destSquare = next.board.getSquare(dest);
@@ -87,9 +86,9 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     bool isCapture = !destSquare.isEmpty;
     bool isCastling = isKing && abs(dest.x - source.x) > 1;
 
-    // Castling
     next.board.setSquare(dest, sourceSquare);
     next.board.setSquare(source, Square.empty);
+    // Castling
     if (isCastling) {
         auto rank = dest.y;
         auto origFile = dest.x == 2 ? 0 : 7;
@@ -115,13 +114,16 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
     }
     // Pawn moves
     next.enPassant = MCoord.invalid;
-    if (isPawn && abs(dest.y - source.y) > 1) {
-        next.enPassant = MCoord(dest.x, (dest.y + source.y) / 2);
-    }
-    // FIXME: Promotion to pieces other than the queen are possible
-    if (isPawn && (dest.y == 0 || dest.y == 7)) {
-        next.board.setSquare(dest, Square(state.turn, Piece.queen));
-        promotion = Piece.queen;
+    if (isPawn) {
+        if (abs(dest.y - source.y) > 1) {
+            next.enPassant = MCoord(dest.x, (dest.y + source.y) / 2);
+        }
+        if (dest.y == 0 || dest.y == 7) {
+            enforce(promotion != Piece.empty);
+            next.board.setSquare(dest, Square(state.turn, promotion));
+        } else {
+            enforce(promotion == Piece.empty);
+        }
     }
     // Advance states
     next.halfMove = (isPawn || isCapture) ? 0 : cast(ushort)(state.halfMove + 1);
@@ -133,7 +135,7 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest) {
 }
 
 MoveDest performMove(const ref GameState state, Move move) {
-    return state.performMove(move.source, move.dest);
+    return state.performMove(move.source, move.dest, move.promotion);
 }
 
 unittest {
@@ -158,9 +160,14 @@ unittest {
     assert(result.state.toFen == "8/3k4/8/8/3P4/8/8/3K4 w - - 1 2");
     // Pawn promotes to queen
     state = "8/7P/8/8/k7/8/8/K7 w - - 0 1".parseFen;
-    result = state.performMove(MCoord(7, 6), MCoord(7, 7));
+    result = state.performMove(MCoord(7, 6), MCoord(7, 7), Piece.queen);
     assert(result.state.board.getSquare(MCoord(7, 7)) == Square(Player.white, Piece.queen));
     assert(result.move.toString() == "h7h8q");
+    // Pawn promotes to knight
+    state = "8/7P/8/8/k7/8/8/K7 w - - 0 1".parseFen;
+    result = state.performMove(MCoord(7, 6), MCoord(7, 7), Piece.knight);
+    assert(result.state.board.getSquare(MCoord(7, 7)) == Square(Player.white, Piece.knight));
+    assert(result.move.toString() == "h7h8n");
     // Castling should move the pieces
     state = "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1".parseFen;
     result = state.performMove("e1g1".parseMove);
@@ -212,20 +219,29 @@ bool canTake(const ref GameState state, MCoord source, MCoord dest) {
 
 pragma(inline, true)
 void addValidMovesForPawn(AppenderT)(const ref GameState state, const ref BitBoard board, AppenderT builder) {
-    // TODO: Promotion to pieces that aren't queen
     auto pawns = board.occupied(Piece.pawn, state.turn);
+    auto currentTurn = state.turn;
     pawns.iterateBits!((s) {
         // TODO: Optimize
         auto source = s.coordFromBit;
         static const int[2] DOUBLE_RANK = [1, 6];
         static const int[2] FORWARD_DIR = [1, -1];
-        auto currentTurn = state.turn;
+        bool aboutToPromote = source.y == DOUBLE_RANK[!currentTurn];
+        scope auto moveForwardOne = (MCoord dest) {
+            if (aboutToPromote) {
+                foreach (Piece pieceToPromoteTo; Piece.rook .. Piece.king) {
+                    builder.put(state.performMove(source, dest, pieceToPromoteTo));
+                }
+            } else {
+                builder.put(state.performMove(source, dest));
+            }
+        };
         auto forward = MCoord(source.x, source.y + FORWARD_DIR[currentTurn]);
         // Pawns on the back rank are illegal
         enforce(forward.isInBounds);
         bool canMoveForward = state.board.isEmpty(forward);
         if (canMoveForward) {
-            builder.put(state.performMove(source, forward));
+            moveForwardOne(forward);
         }
         if (canMoveForward && source.y == DOUBLE_RANK[currentTurn]) {
             auto doubleForward = MCoord(source.x, source.y + 2 * FORWARD_DIR[currentTurn]);
@@ -236,7 +252,7 @@ void addValidMovesForPawn(AppenderT)(const ref GameState state, const ref BitBoa
         foreach (sign; SIGNS) {
             auto dest = MCoord(source.x + sign, source.y + FORWARD_DIR[currentTurn]);
             if (state.canTake(source, dest) || state.enPassant == dest) {
-                builder.put(state.performMove(source, dest));
+                moveForwardOne(dest);
             }
         }
     });
@@ -254,8 +270,8 @@ void addValidMovesForBishop(AppenderT)(const ref GameState state, const ref BitB
                 ({
                     foreach (step; 1 .. 8) {
                         auto dest = MCoord(
-                        source.x + step * xSign,
-                        source.y + step * ySign,
+                            source.x + step * xSign,
+                            source.y + step * ySign,
                         );
                         if (!state.canTakeOrMove(source, dest)) {
                             return;

@@ -72,6 +72,9 @@ void runHeavyTests() {
     tests ~= HeavyTest("8/p3Pkb1/5p2/2B5/2P2P2/7q/PP2R1p1/6K1 w - - 0 42", [
         "e7e8q"
     ]);
+    // Knight Promotion checkmate
+    tests ~= HeavyTest("nN6/knP5/nr6/8/8/6B1/8/4K3 w - - 0 1", ["c7c8n"]);
+    tests ~= HeavyTest("8/8/6q1/8/8/4NQ2/4K1pk/8 b - - 5 1", ["g2g1n", "e2f2", "g1f3"]);
     tests ~= HeavyTest("5rk1/2p1p2n/p1pqN2Q/5bpp/8/1P6/P1P3PP/5R1K w - - 2 26", [
         "h6g7"
     ]);
