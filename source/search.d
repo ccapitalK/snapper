@@ -8,8 +8,10 @@ import std.logger;
 import std.math : abs;
 import std.stdio;
 import std.typecons;
+
 import snapper.state_table;
 import snapper.repr;
+import snapper.sort;
 import snapper.stack_appender;
 
 class StopException : Throwable {
@@ -101,6 +103,7 @@ struct SortOrder {
                 ++start;
             }
         }
+        // TODO use snapper.quicksort
         inds[start .. vals.length].sort!((i, j) => vals[i].eval * mult > vals[j].eval * mult);
     }
 
