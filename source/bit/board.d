@@ -100,8 +100,7 @@ unittest {
     assert(arr == [0x2UL, 0x8_0000_0000UL, 0x8000_0000_0000_0000UL]);
 }
 
-// Note: Invariant that there are no intersections anywhere
-// TODO: Convert to white bitboard + piece boards, 12 dwords -> 7 dwords
+// Note: Invariant that there are no intersections between piece boards anywhere
 struct BitBoard {
     // BitMask for each (Piece, Player) combination
     PositionMask whiteMask;

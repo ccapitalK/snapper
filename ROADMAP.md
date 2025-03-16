@@ -22,7 +22,7 @@
 - [X] StackAllocator for move list generation
 - [X] Switch to UTHash (Abandoned, seems slower than gc / using table)
 - [X] Rewrite search to use custom allocators, avoid GC
-- [ ] Bitboard
+- [X] Bitboard
 - [ ] Magic Bitboard
 - [ ] Optimize move generation
 - [ ] Properly handle detecting check and not moving into mate
@@ -37,7 +37,7 @@
 - [X] Iterative Deepening
 - [X] Transposition tables
 - [X] Reuse the principle variation when deepening
-- [ ] Quiescence
+- [?] Quiescence - Tried, not sure if it's worth keeping
 - [ ] Better position evaluation
 - [X] Opening table database
 - [ ] Cuda tree search?
