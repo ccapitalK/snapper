@@ -4,8 +4,7 @@ import std.exception;
 import snapper.repr;
 
 bool isSame(const GameState *a, const GameState *b) {
-    import core.stdc.string;
-    return !core.stdc.string.memcmp(a, b, GameState.sizeof);
+    return *a == *b;
 }
 
 struct GameStateTable {
