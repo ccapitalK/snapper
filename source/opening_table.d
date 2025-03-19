@@ -1,11 +1,14 @@
 module snapper.opening_table;
 
-import std.array;
 import std.algorithm;
+import std.array;
 import std.logger;
 import std.typecons;
+
 import snapper.agent;
 import snapper.repr;
+
+const static string MOVES_DB_STRING = import("movesdb.txt");
 
 struct OpeningTable {
     private uint[Move][GameState] validMoves;
