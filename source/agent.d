@@ -36,7 +36,7 @@ GameState readUCIPosition(string uciCommand) {
     if (moveComponents.length > 0) {
         foreach (moveString; moveComponents.splitter(" ")) {
             auto move = moveString.parseMove();
-            position = position.performMove(move.source, move.dest).state;
+            position = position.performMove(move).state;
         }
     }
     return position;
@@ -65,6 +65,17 @@ unittest {
         ~ " f3g4 e7e6 b6c5 f8c5 b1d1";
     position = command.readUCIPosition;
     assert(position.toFen.startsWith("r1b3r1/1p1k1p2/2p1p2p/p1bn2p1/5BB1/8/5PPP/3R2K1 b - -"));
+    command = "position startpos moves d2d4 e7e5 d4e5 d7d6 e5d6 d8d6 d1d6 f8d6 g1f3"
+        ~ " b8c6 c2c3 c8e6 c1g5 f7f6 g5h4 e6d5 b1d2 e8f8 e1c1 d5a2 b2b3 d6a3"
+        ~ " c1c2 g7g5 h4g3 g5g4 f3e1 a8d8 e1d3 a3d6 d1a1 d6g3 h2g3 a2b3 d2b3"
+        ~ " d8d6 b3c5 b7b6 c5e4 d6d5 f2f3 g4f3 e2f3 f8g7 d3f4 d5e5 f1d3 g8e7"
+        ~ " h1h2 f6f5 e4g5 g7f6 g5h7 f6g7 a1h1 e5e3 h7g5 h8h2 h1h2 g7f6 g5h3"
+        ~ " c6e5 h3f2 f6f7 h2h7 f7f6 h7e7 f6e7 f4d5 e7f8 d5e3 b6b5 e3f5 a7a6"
+        ~ " f2e4 f8g8 e4c5 e5d3 c5d3 a6a5 c2b3 g8h7 f5d4 b5b4 c3b4 a5b4 b3b4"
+        ~ " h7h8 b4c5 h8g8 c5c6 g8g7 c6c7 g7f8 c7d7 f8f7 g3g4 f7g6 f3f4 g6f7"
+        ~ " d3e5 f7f8 g4g5 f8g8 f4f5 g8h7 f5f6 h7h8 f6f7 h8g7 d4e6 g7h8 f7f8q";
+    position = command.readUCIPosition;
+    assert(position.toFen == "5Q1k/3K4/4N3/4N1P1/8/8/6P1/8 b - - 0 57");
 }
 
 class ChessAgent {
