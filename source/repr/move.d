@@ -118,6 +118,11 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest, Piec
         if (abs(dest.y - source.y) > 1) {
             next.enPassant = MCoord(dest.x, (dest.y + source.y) / 2);
         }
+        if (dest == state.enPassant) {
+            auto backward = state.turn == Player.black ? 1 : -1;
+            auto takenPieceSquare = MCoord(state.enPassant.x, state.enPassant.y + backward);
+            next.board.setSquare(takenPieceSquare, Square.empty);
+        }
         if (dest.y == 0 || dest.y == 7) {
             enforce(promotion != Piece.empty);
             next.board.setSquare(dest, Square(state.turn, promotion));
@@ -158,6 +163,11 @@ unittest {
     state = result.state;
     result = state.performMove(MCoord(3, 7), MCoord(3, 6));
     assert(result.state.toFen == "8/3k4/8/8/3P4/8/8/3K4 w - - 1 2");
+    // Taking En Passant should update the square
+    state = "4k3/8/8/8/4p3/8/3P4/4K3 w - - 0 1".parseFen;
+    state = state.performMove("d2d4".parseMove).state;
+    state = state.performMove("e4d3".parseMove).state;
+    assert(state.toFen == "4k3/8/8/8/8/3p4/8/4K3 w - - 0 2");
     // Pawn promotes to queen
     state = "8/7P/8/8/k7/8/8/K7 w - - 0 1".parseFen;
     result = state.performMove(MCoord(7, 6), MCoord(7, 7), Piece.queen);
