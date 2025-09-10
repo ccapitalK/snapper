@@ -60,6 +60,10 @@ struct MoveDest {
     float eval;
 
     string toString() const => format("%s => leaf(%s)", move.toString, eval);
+
+    void fillOutEval() {
+        eval = (&this.state).leafEval();
+    }
 }
 
 struct CastlingCheck {
@@ -75,7 +79,12 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest, Piec
         CastlingCheck("a8".parseCoord, Player.black, "queen"),
         CastlingCheck("h8".parseCoord, Player.black, "king"),
     ];
-    GameState next = state;
+    // Note(ccapitalK): Initializing this here and aliasing next generates noticably faster code than
+    // creating a Gamestate next and creating the MoveDest at the end of the function, by avoiding
+    // store-to-load forwarding failures that would otherwise be incurred.
+    MoveDest moveDest = MoveDest(state, Move(source, dest, promotion), double.init);
+    GameState *next() => &moveDest.state;
+
     auto sourceSquare = next.board.getSquare(source);
     auto destSquare = next.board.getSquare(dest);
     enforce(!sourceSquare.isEmpty && sourceSquare.getPlayer == state.turn);
@@ -103,6 +112,7 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest, Piec
         static foreach (player; EnumMembers!Player) {
             static foreach (check; castlingChecks) {
                 {
+                    // FIXME: Test losing rook breaks check
                     const static string lookup = ".castling." ~ check.side ~ "[player]";
                     bool isCoord = source == check.pos || dest == check.pos;
                     if (check.player == player && mixin("state" ~ lookup) && isCoord) {
@@ -136,7 +146,7 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest, Piec
         ++next.fullMove;
     }
     next.turn = cast(Player) !state.turn;
-    return MoveDest(next, Move(source, dest, promotion), (&next).leafEval());
+    return moveDest;
 }
 
 MoveDest performMove(const ref GameState state, Move move) {
@@ -363,6 +373,9 @@ MoveDest[] validMovesInner(AppenderT)(const ref GameState parent, AppenderT buil
     parent.addValidMovesForBishop!AppenderT(parent.board, builder);
     parent.addValidMovesForPawn!AppenderT(parent.board, builder);
     auto moves = builder.data;
+    foreach (ref move; moves) {
+        move.fillOutEval();
+    }
     return moves;
 }
 
