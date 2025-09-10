@@ -1,7 +1,6 @@
 module snapper.bit.board;
 
 import core.bitop;
-import std.algorithm;
 import std.exception;
 import std.format;
 import std.logger;
@@ -133,7 +132,17 @@ struct BitBoard {
     PositionMask occupied(Player player) const => occupied.intersection(playerMask(player));
     PositionMask occupied(Piece piece) const => masks[piece.nonEmpty - 1];
 
-    PositionMask occupied() const => masks[].fold!((a, b) => a.union_(b));
+    // FIXME(ccapitalk): Should report use fold in algorithm, unfortunately broken in dmd 2.111
+    // Fix has been merged, revert this when 2.111.1 or 2.112.0 are released.
+    // PositionMask occupied() const => masks[].fold!((a, b) => a.union_(b));
+
+    PositionMask occupied() const {
+        PositionMask acc = PositionMask.empty;
+        foreach (mask; masks) {
+            acc = acc.union_(mask);
+        }
+        return acc;
+    }
 
     size_t toHash() const nothrow {
         static const auto PRIME = 0x100000001B3UL;
