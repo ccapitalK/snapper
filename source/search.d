@@ -20,7 +20,7 @@ class StopException : Throwable {
     }
 }
 
-const static size_t GAMESTATE_TABLE_MEMORY_BUDGET = 8 * 1024 * 1024;
+const static size_t GAMESTATE_TABLE_MEMORY_BUDGET = 32 * 1024 * 1024;
 
 // TODO: Clean this whole module up
 struct SearchContext {
