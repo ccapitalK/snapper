@@ -136,7 +136,7 @@ MoveDest performMove(const ref GameState state, MCoord source, MCoord dest, Piec
         ++next.fullMove;
     }
     next.turn = cast(Player) !state.turn;
-    return MoveDest(next, Move(source, dest, promotion), next.leafEval());
+    return MoveDest(next, Move(source, dest, promotion), (&next).leafEval());
 }
 
 MoveDest performMove(const ref GameState state, Move move) {

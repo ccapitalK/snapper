@@ -187,7 +187,9 @@ static const auto LE_FIELDS = {
     return masks;
 }();
 
-float leafEval(GameState state) {
+float leafEval(GameState state) => (&state).leafEval;
+
+float leafEval(const(GameState) *state) {
     const auto whiteMask = state.board.whiteMask;
     auto sum = 0.0;
     PositionMask nonKing = PositionMask.empty;
