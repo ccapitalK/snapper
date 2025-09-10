@@ -30,6 +30,7 @@ struct SearchContext {
     SysTime endTime;
     StackAppender!MoveDest appender;
     size_t numEvals = 1;
+    size_t numSkips = 0;
     size_t iterationsPerTimeoutCheck = size_t.max;
 
     void clear() {
@@ -164,6 +165,7 @@ private SearchNode pickBestMoveInner(
         if (isBlack) {
             // Minimizing
             if (score < frame.alpha) {
+                ++context.numSkips;
                 // Opponent won't permit this
                 break;
             }
@@ -171,6 +173,7 @@ private SearchNode pickBestMoveInner(
         } else {
             // Maximizing
             if (score > frame.beta) {
+                ++context.numSkips;
                 // Opponent won't permit this
                 break;
             }
@@ -195,7 +198,8 @@ MoveDest pickBestMove(
     }
     auto startEvals = numEvals;
     auto bestMove = source.pickBestMoveInner(frame, context, depth);
-    infof("Evaluated %d positions for depth %d search", numEvals - startEvals, depth);
+    infof("Evaluated %d positions for depth %d search with %d skips",
+        numEvals - startEvals, depth, context.numSkips);
     infof("Best move: %s", bestMove.move);
     context.currentBestVariation = [];
     for (SearchNode node = bestMove; node !is null; node = node.principal) {
