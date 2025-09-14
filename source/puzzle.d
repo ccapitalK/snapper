@@ -4,7 +4,6 @@ import std.algorithm;
 import std.datetime;
 import std.exception;
 import std.format;
-import std.parallelism;
 import std.range;
 import std.random;
 import std.stdio;
@@ -18,7 +17,7 @@ struct HeavyTest {
     Duration duration = 100.msecs;
 }
 
-void check(const ref HeavyTest test) {
+bool check(const ref HeavyTest test) {
     ChessAgent agent = new ChessAgent;
     auto state = test.origFen.parseFen;
     agent.handleUciPositionCommand("position fen " ~ state.toFen);
@@ -30,18 +29,22 @@ void check(const ref HeavyTest test) {
     foreach (pair; test.expectedMoves.chunks(2)) {
         auto expectedMove = pair[0];
         auto agentMove = agent.bestMove("", test.duration);
-        enforce(expectedMove == agentMove, "%s: Expected %s, got %s".format(test, expectedMove, agentMove));
+        if (expectedMove != agentMove) {
+            writefln!"%s: Expected %s, got %s"(test, expectedMove, agentMove);
+            return false;
+        }
         if (pair.length > 1) {
             applyMove(agentMove);
             applyMove(pair[1]);
             agent.handleUciPositionCommand("position fen " ~ state.toFen);
         }
     }
+    return true;
 }
 
 void runHeavyTests() {
-    auto rnd = Mt19937(1337);
     HeavyTest[] tests;
+    int passes;
     // Random simple puzzles
     tests ~= HeavyTest("r2r2k1/1q3ppp/8/7P/6P1/3R4/B7/3R2K1 w - - 0 1", [
         "d3d8", "a8d8", "d1d8"
@@ -113,10 +116,9 @@ void runHeavyTests() {
     //     "e2f2", "g1h1", "f2f1", "a1f1", "f5f1"
     // ], 1.seconds);
 
-    tests.randomShuffle(rnd);
-    foreach (test; tests.parallel) {
+    foreach (test; tests) {
         writeln("Running test ", test);
-        test.check();
+        passes += test.check();
     }
-    writeln("All tests passed!");
+    writefln!"Passed %d/%d"(passes, tests.length);
 }
