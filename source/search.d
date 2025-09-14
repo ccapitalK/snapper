@@ -227,8 +227,10 @@ unittest {
     state = "r1bqkbnr/pppppppp/2n5/8/3P4/6P1/PPP1PP1P/RNBQKBNR b KQkq - 0 1".parseFen;
     assert(state.pickBestMove(1).move.toString != "c6d4");
     state = "7k/5ppp/8/8/8/4r3/8/2QK4 w - - 0 1".parseFen;
-    assert(state.pickBestMove(1).move.toString != "c1c3");
-    assert(state.pickBestMove(3).move.toString != "c1c8");
+    // Shouldn't see the mate
+    assert(state.pickBestMove(1).move.toString == "c1e3");
+    // Should see mate
+    assert(state.pickBestMove(5).move.toString == "c1c8");
 }
 
 // TODO: We should be keeping some stuff from the previous iteration. This is more ad-hoc

@@ -176,13 +176,15 @@ static const auto LE_LUTK = ({
 })();
 
 static const auto LE_FIELDS = {
-    PositionMask[4] masks;
-    foreach (i, ref v; masks) {
-        v = PositionMask(bitsWhere!((x, y) {
-            x = x < 4 ? x : 7 - x;
-            y = y < 4 ? y : 7 - y;
-            return min(x, y) == i;
-        }));
+    PositionMask[12][2] masks;
+    foreach (p, ref arr; masks) {
+        foreach (i, ref v; arr) {
+            v = PositionMask(bitsWhere!((x, y) {
+                x = x < 4 ? x : 7 - x;
+                y = p ? 7 - y : y;
+                return y + x == i;
+            }));
+        }
     }
     return masks;
 }();
@@ -210,8 +212,8 @@ float leafEval(const(GameState) *state) {
         auto playerCoeff = isBlack ? -1 : 1;
         {
             auto sumWeight = 0;
-            foreach (i; 0 .. LE_FIELDS.length) {
-                sumWeight += (i + 1) * relevantNonKing.intersection(LE_FIELDS[i]).numOccupied;
+            foreach (i; 0 .. LE_FIELDS[0].length) {
+                sumWeight += (i + 1) * relevantNonKing.intersection(LE_FIELDS[player][i]).numOccupied;
             }
             sum += 0.02 * playerCoeff * sumWeight;
         }
