@@ -111,10 +111,10 @@ void runHeavyTests() {
     ], 1.seconds);
 
     // Doesn't pass
-    // tests ~= HeavyTest("1r2k2r/pppq1ppp/2P2n2/8/Q2P1P2/2N1BpP1/PP3P1P/R4RK1 b k - 0 18", ["d7h3"]);
-    // tests ~= HeavyTest("8/kpp5/p7/5rp1/P2P4/2B4Q/1PP1q1PP/R5K1 b - - 4 30", [
-    //     "e2f2", "g1h1", "f2f1", "a1f1", "f5f1"
-    // ], 1.seconds);
+    tests ~= HeavyTest("1r2k2r/pppq1ppp/2P2n2/8/Q2P1P2/2N1BpP1/PP3P1P/R4RK1 b k - 0 18", ["d7h3"], 1.seconds);
+    tests ~= HeavyTest("8/kpp5/p7/5rp1/P2P4/2B4Q/1PP1q1PP/R5K1 b - - 4 30", [
+        "e2f2", "g1h1", "f2f1", "a1f1", "f5f1"
+    ], 1.seconds);
 
     foreach (test; tests) {
         writeln("Running test ", test);

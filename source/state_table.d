@@ -1,43 +1,46 @@
 module snapper.state_table;
 
 import std.exception;
+
 import snapper.repr;
+import snapper.search;
 
 bool isSame(const GameState *a, const GameState *b) {
     return *a == *b;
 }
 
+struct ScoredGameState {
+    GameState state;
+    SearchNode node;
+}
+
 struct GameStateTable {
-    GameState[] states;
+    ScoredGameState[] states;
 
     @disable
     this();
 
     this(size_t numBytesToUse) {
-        auto length = numBytesToUse / GameState.sizeof;
+        auto length = numBytesToUse / ScoredGameState.sizeof;
         enforce(length > 16);
         states.length = length;
+    }
+
+    void clear() {
+        foreach (ref v; states) {
+            v.node = null;
+        }
     }
 
     ulong hashSlot(const ref GameState state) {
         return state.hashOf % states.length;
     }
 
-    void replace(const ref GameState state) {
-        states[hashSlot(state)] = state;
+    ScoredGameState *get(const ref GameState state) {
+        return &states[hashSlot(state)];
     }
+}
 
-    bool contains(const ref GameState state) {
-        return (&state).isSame(&states[hashSlot(state)]);
-    }
-
-    // Returns true if already contained. Replaces and returns false if not.
-    bool containsOrReplace(const ref GameState state) {
-        auto slot = hashSlot(state);
-        if ((&state).isSame(&states[slot])) {
-            return true;
-        }
-        states[slot] = state;
-        return false;
-    }
+bool hasScore(const ref GameState state, ScoredGameState *scored) {
+    return scored.node !is null && (&state).isSame(&scored.state);
 }

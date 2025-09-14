@@ -34,7 +34,7 @@ struct SearchContext {
     size_t iterationsPerTimeoutCheck = size_t.max;
 
     void clear() {
-        seen = GameStateTable(GAMESTATE_TABLE_MEMORY_BUDGET);
+        seen.clear();
     }
 }
 
@@ -123,8 +123,9 @@ private SearchNode pickBestMoveInner(
         }
     }
     ++context.numEvals;
-    if (context.seen.containsOrReplace(source)) {
-        return null;
+    auto stateLookup = context.seen.get(source);
+    if (source.hasScore(stateLookup)) {
+        return stateLookup.node;
     }
 
     auto appender = &context.appender;
@@ -183,7 +184,9 @@ private SearchNode pickBestMoveInner(
     if (best == null) {
         return null;
     }
-    return new SearchNode(*best, bestScore * multForPlayer, bestNode);
+    stateLookup.state = source;
+    stateLookup.node = new SearchNode(*best, bestScore * multForPlayer, bestNode);
+    return stateLookup.node;
 }
 
 MoveDest pickBestMove(
@@ -200,11 +203,16 @@ MoveDest pickBestMove(
     auto bestMove = source.pickBestMoveInner(frame, context, depth);
     infof("Evaluated %d positions for depth %d search with %d skips",
         numEvals - startEvals, depth, context.numSkips);
-    infof("Best move: %s", bestMove.move);
     context.currentBestVariation = [];
+    import std.array;
+    auto builder = appender!(char[]);
     for (SearchNode node = bestMove; node !is null; node = node.principal) {
-        context.currentBestVariation ~= node.move.move;
+        Move move = node.move.move;
+        context.currentBestVariation ~= move;
+        builder.put(' ');
+        builder.put(move.toString());
     }
+    infof("Best line: %s", builder.data());
     if (isLocalContext) {
         destroy(context);
     }
@@ -231,6 +239,9 @@ unittest {
     assert(state.pickBestMove(1).move.toString == "c1e3");
     // Should see mate
     assert(state.pickBestMove(5).move.toString == "c1c8");
+    // Regression test bug
+    state = "8/kpp5/p7/6p1/P2P4/2B4Q/1PP3PP/5qK1 w - - 0 1".parseFen;
+    assert(state.pickBestMove(1).move.toString == "g1f1");
 }
 
 // TODO: We should be keeping some stuff from the previous iteration. This is more ad-hoc
