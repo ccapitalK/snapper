@@ -27,13 +27,13 @@ struct MCoord {
         this.x = cast(ubyte) x;
         this.y = cast(ubyte) y;
     }
-}
 
-bool isInBounds(MCoord coord) => ((coord.x & 7) == coord.x) && ((coord.y & 7) == coord.y);
+    bool isInBounds() const => ((x & 7) == x) && ((y & 7) == y);
 
-string toString(MCoord m) {
-    enforce(m.isInBounds);
-    return cast(string)['a' + m.x, '1' + m.y];
+    string toString() const {
+        enforce(isInBounds);
+        return cast(string) ['a' + x, '1' + y];
+    }
 }
 
 MCoord parseCoord(string coordString) {

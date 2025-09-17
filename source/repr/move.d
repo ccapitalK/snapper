@@ -20,6 +20,20 @@ struct Move {
     Piece promotion = Piece.empty;
 
     static const invalid = Move(MCoord.invalid, MCoord.invalid);
+
+    string toString() const {
+        auto end = 4;
+        char[5] data;
+        data[0 .. 2] = source.toString[];
+        data[2 .. 4] = dest.toString[];
+        static foreach (v; pieceByFenName) {
+            if (promotion == v[1]) {
+                data[4] = v[0];
+                end = 5;
+            }
+        }
+        return data[0 .. end].idup;
+    }
 }
 
 Move parseMove(string moveStr) {
@@ -35,22 +49,6 @@ Move parseMove(string moveStr) {
         }
     }
     return move;
-}
-
-string toString(Move m) {
-    auto end = 4;
-    char[5] data;
-    // BLEGH, modules don't allow the same symbol to be defined in
-    // two spaces, even for different types?
-    data[0 .. 2] = snapper.repr.toString(m.source)[];
-    data[2 .. 4] = snapper.repr.toString(m.dest)[];
-    static foreach (v; pieceByFenName) {
-        if (m.promotion == v[1]) {
-            data[4] = v[0];
-            end = 5;
-        }
-    }
-    return data[0 .. end].idup;
 }
 
 struct MoveDest {
