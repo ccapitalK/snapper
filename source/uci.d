@@ -70,7 +70,11 @@ class UciChessEngine {
         sendCommand("id name Snapper\n");
         sendCommand("id author ccapitalK\n");
         sendCommand("uciok\n");
-        enforce(expectCommand() == "isready", "Unknown command in handshake");
+        auto command = expectCommand();
+        if (command == "ucinewgame") {
+            command = expectCommand();
+        }
+        enforce(command == "isready", "Unknown command in handshake");
         sendCommand("readyok\n");
     }
 }
