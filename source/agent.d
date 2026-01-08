@@ -4,11 +4,13 @@ import core.atomic;
 import core.thread;
 import core.time;
 import std.algorithm;
+import std.conv;
 import std.datetime;
 import std.exception;
 import std.logger;
 import std.random;
 import std.string : strip;
+import std.traits;
 
 import snapper.opening_table;
 import snapper.repr;
@@ -78,6 +80,53 @@ unittest {
     assert(position.toFen == "5Q1k/3K4/4N3/4N1P1/8/8/6P1/8 b - - 0 57");
 }
 
+struct TurnOpts {
+    int wtime = -1;
+    int btime = -1;
+    int winc = -1;
+    int binc = -1;
+    int movetime = 3000;
+}
+
+TurnOpts parseTurnOpts(string optsStr) {
+    TurnOpts opts;
+    string optname = null;
+    foreach (opt; optsStr.splitter(' ')) {
+        if (optname == null) {
+            optname = opt;
+        } else {
+            try {
+                int arg = opt.to!int;
+                fieldSwitch: switch (optname) {
+                    static foreach (field; FieldNameTuple!TurnOpts) {
+                    case field:
+                        mixin("opts." ~ field) = arg;
+                        break fieldSwitch;
+                    }
+                default:
+                    break;
+                }
+            } catch (Exception e) {
+                warning("Failed to parse arg ", optname, '=', opt);
+            }
+            optname = null;
+        }
+    }
+    if (optname != null) {
+        warning("Warn: Trailing arg in optStr '", optsStr, "'");
+    }
+    return opts;
+}
+
+unittest {
+    auto opts = parseTurnOpts("wtime 161719 btime 102470 winc 2000 binc 2000 movetime 3000");
+    assert(opts.wtime == 161_719);
+    assert(opts.btime == 102_470);
+    assert(opts.winc == 2000);
+    assert(opts.binc == 2000);
+    assert(opts.movetime == 3000);
+}
+
 class ChessAgent {
     GameState currentBoard;
     OpeningTable openingTable;
@@ -122,6 +171,7 @@ class ChessAgent {
         if (tableMove != null) {
             return tableMove;
         }
+        auto turnOpts = opts.parseTurnOpts();
         auto context = makeSearchContext();
         context.endTime = Clock.currTime + thinkTime;
         return currentBoard.pickBestMoveIterativeDeepening(context).move.toString;
